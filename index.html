@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduControl - Sistema de Gestão de Educadores</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .fade-in { animation: fadeIn 0.3s ease-in; }
@@ -13,6 +12,68 @@
         .card { transition: all 0.3s ease; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        
+        .calendar-day {
+            min-height: 120px;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+        .calendar-day:hover {
+            background-color: #f9fafb;
+            border-color: #d1d5db;
+        }
+        .calendar-day.has-classes {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+        }
+        .calendar-day.has-exceptions {
+            background-color: #fef3c7;
+            border-color: #f59e0b;
+        }
+        .calendar-day.has-deleted {
+            background-color: #fee2e2;
+            border-color: #dc2626;
+        }
+        
+        .aula-item {
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            margin: 1px 0;
+            border-radius: 3px;
+            background-color: #3b82f6;
+            color: white;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .aula-item.exception {
+            background-color: #f59e0b;
+        }
+        .aula-item.deleted {
+            background-color: #dc2626;
+            text-decoration: line-through;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .view { display: none; }
+        .view.active { display: block; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
@@ -24,2101 +85,1069 @@
                     <i class="fas fa-graduation-cap text-3xl"></i>
                     <h1 class="text-2xl font-bold">EduControl</h1>
                 </div>
-                <nav class="hidden md:flex space-x-6">
-                    <button onclick="showDashboard()" class="nav-btn hover:text-yellow-300 transition-colors">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </button>
+                <nav class="flex space-x-6">
                     <button onclick="showCalendar()" class="nav-btn hover:text-yellow-300 transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Calendário
+                        <i class="fas fa-calendar mr-2"></i>Calendário
+                    </button>
+                    <button onclick="showGradeBase()" class="nav-btn hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-table mr-2"></i>Grade Base
+                    </button>
+                    <button onclick="showEducadores()" class="nav-btn hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-users mr-2"></i>Educadores
                     </button>
                     <button onclick="showReports()" class="nav-btn hover:text-yellow-300 transition-colors">
                         <i class="fas fa-chart-bar mr-2"></i>Relatórios
                     </button>
-                    <button onclick="showOcorrencias()" class="nav-btn hover:text-yellow-300 transition-colors">
-                        <i class="fas fa-exclamation-circle mr-2"></i>Ocorrências
-                    </button>
-                    <button onclick="showSettings()" class="nav-btn hover:text-yellow-300 transition-colors">
-                        <i class="fas fa-cog mr-2"></i>Configurações
+                    <button onclick="showBackup()" class="nav-btn hover:text-yellow-300 transition-colors">
+                        <i class="fas fa-download mr-2"></i>Backup
                     </button>
                 </nav>
-                <div class="md:hidden">
-                    <button onclick="toggleMobileMenu()" class="text-white">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                </div>
             </div>
         </div>
     </header>
 
-    <!-- Mobile Menu -->
-    <div id="mobileMenu" class="hidden bg-white shadow-lg md:hidden">
-        <div class="px-6 py-4 space-y-2">
-            <button onclick="showDashboard(); toggleMobileMenu()" class="block w-full text-left py-2 text-gray-700 hover:text-purple-600">
-                <i class="fas fa-home mr-2"></i>Dashboard
-            </button>
-            <button onclick="showCalendar(); toggleMobileMenu()" class="block w-full text-left py-2 text-gray-700 hover:text-purple-600">
-                <i class="fas fa-calendar-alt mr-2"></i>Calendário
-            </button>
-            <button onclick="showReports(); toggleMobileMenu()" class="block w-full text-left py-2 text-gray-700 hover:text-purple-600">
-                <i class="fas fa-chart-bar mr-2"></i>Relatórios
-            </button>
-            <button onclick="showOcorrencias(); toggleMobileMenu()" class="block w-full text-left py-2 text-gray-700 hover:text-purple-600">
-                <i class="fas fa-exclamation-circle mr-2"></i>Ocorrências
-            </button>
-            <button onclick="showSettings(); toggleMobileMenu()" class="block w-full text-left py-2 text-gray-700 hover:text-purple-600">
-                <i class="fas fa-cog mr-2"></i>Configurações
-            </button>
-        </div>
-    </div>
-
     <main class="container mx-auto px-6 py-8">
-        <!-- Dashboard -->
-        <div id="dashboard" class="view">
-            <div class="mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h2>
-                <p class="text-gray-600">Visão geral do seu sistema educacional</p>
-            </div>
-
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Educadores Ativos</p>
-                            <p id="totalEducadores" class="text-2xl font-bold text-gray-800">-</p>
-                        </div>
-                        <div class="bg-blue-100 p-3 rounded-full">
-                            <i class="fas fa-users text-blue-600 text-xl"></i>
-                        </div>
-                    </div>
+        <!-- CALENDÁRIO MENSAL -->
+        <div id="calendario" class="view active">
+            <div class="mb-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Calendário de Aulas</h2>
+                    <p class="text-gray-600">Visualize e gerencie as aulas do mês</p>
                 </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Aulas Este Mês</p>
-                            <p id="totalAulas" class="text-2xl font-bold text-gray-800">-</p>
-                        </div>
-                        <div class="bg-green-100 p-3 rounded-full">
-                            <i class="fas fa-chalkboard-teacher text-green-600 text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Horas Totais</p>
-                            <p id="totalHoras" class="text-2xl font-bold text-gray-800">-</p>
-                        </div>
-                        <div class="bg-purple-100 p-3 rounded-full">
-                            <i class="fas fa-clock text-purple-600 text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Total a Pagar</p>
-                            <p id="totalPagar" class="text-2xl font-bold text-green-600">-</p>
-                        </div>
-                        <div class="bg-yellow-100 p-3 rounded-full">
-                            <i class="fas fa-dollar-sign text-yellow-600 text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Current Month Summary -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-calendar-check text-blue-600 mr-2"></i>
-                        Resumo do Mês
-                    </h3>
-                    <div class="flex items-center justify-between mb-4">
-                        <label class="text-gray-700 font-medium">Selecionar mês:</label>
-                        <select id="mesSelect" onchange="updateDashboard()" class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <!-- Options will be populated by JavaScript -->
-                        </select>
-                    </div>
-                    <div id="resumoMes" class="space-y-3">
-                        <!-- Content will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-users text-green-600 mr-2"></i>
-                        Comparativo de Educadores
-                    </h3>
-                    <div id="educadorComparativo" class="space-y-4">
-                        <!-- Content will be populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Setup Message for First Use -->
-            <div id="setupMessage" class="card bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-8 text-center">
-                <i class="fas fa-rocket text-4xl mb-4"></i>
-                <h3 class="text-2xl font-bold mb-2">Bem-vindo ao EduControl!</h3>
-                <p class="text-blue-100 mb-6">Configure seus educadores e grade de aulas para começar.</p>
-                <button onclick="showSettings()" class="bg-white text-blue-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-cog mr-2"></i>Ir para Configurações
-                </button>
-            </div>
-        </div>
-
-        <!-- Calendar -->
-        <div id="calendar" class="view hidden">
-            <div class="mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">Calendário de Aulas</h2>
-                <p class="text-gray-600">Visualize todas as aulas programadas</p>
-            </div>
-
-            <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
-                    <div class="flex items-center space-x-4">
-                        <button onclick="previousMonth()" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors">
-                            <i class="fas fa-chevron-left text-gray-600"></i>
-                        </button>
-                        <h3 id="currentMonth" class="text-xl font-semibold text-gray-800">Agosto 2025</h3>
-                        <button onclick="nextMonth()" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors">
-                            <i class="fas fa-chevron-right text-gray-600"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600">Legenda:</span>
-                        <div class="flex items-center space-x-4 text-sm">
-                            <div class="flex items-center"><div class="w-3 h-3 bg-green-500 rounded mr-1"></div> Aula Normal</div>
-                            <div class="flex items-center"><div class="w-3 h-3 bg-red-500 rounded mr-1"></div> Feriado</div>
-                            <div class="flex items-center"><div class="w-3 h-3 bg-yellow-500 rounded mr-1"></div> Aula Modificada</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="calendarGrid" class="grid grid-cols-7 gap-2">
-                    <!-- Calendar will be populated by JavaScript -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Reports -->
-        <div id="reports" class="view hidden">
-            <div class="mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">Relatórios</h2>
-                <p class="text-gray-600">Análise detalhada dos pagamentos</p>
-            </div>
-
-            <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100 mb-8">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
-                    <h3 class="text-lg font-semibold text-gray-800">Filtros</h3>
-                    <div class="flex items-center space-x-4">
-                        <select id="reportMonth" onchange="generateReport()" class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <!-- Options will be populated by JavaScript -->
-                        </select>
-                        <button onclick="exportReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-download mr-2"></i>Exportar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="reportContent" class="space-y-6">
-                <!-- Report content will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Settings -->
-        <div id="settings" class="view hidden">
-            <div class="mb-8">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">Configurações</h2>
-                <p class="text-gray-600">Gerencie educadores, aulas e preferências do sistema</p>
-            </div>
-
-            <!-- Settings Navigation -->
-            <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100 mb-8">
-                <div class="flex flex-wrap gap-4">
-                    <button onclick="showEducadorSettings()" id="educadorTab" class="settings-tab bg-blue-600 text-white px-4 py-2 rounded-lg">
-                        <i class="fas fa-users mr-2"></i>Educadores
+                <div class="flex items-center space-x-4">
+                    <button onclick="previousMonth()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-chevron-left mr-2"></i>Anterior
                     </button>
-                    <button onclick="showGradeSettings()" id="gradeTab" class="settings-tab bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">
-                        <i class="fas fa-calendar-alt mr-2"></i>Grade de Aulas
-                    </button>
-                    <button onclick="showSystemSettings()" id="systemTab" class="settings-tab bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">
-                        <i class="fas fa-cog mr-2"></i>Sistema
+                    <h3 id="currentMonth" class="text-xl font-semibold text-gray-800"></h3>
+                    <button onclick="nextMonth()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        Próximo<i class="fas fa-chevron-right ml-2"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Educador Settings -->
-            <div id="educadorSettings" class="settings-panel">
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800">
-                            <i class="fas fa-users text-blue-600 mr-2"></i>Gestão de Educadores
-                        </h3>
-                        <button onclick="addEducador()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Novo Educador
-                        </button>
-                    </div>
-
-                    <div id="educadorList" class="space-y-4">
-                        <!-- Educador list will be populated by JavaScript -->
-                    </div>
+            <!-- Legenda -->
+            <div class="mb-4 flex flex-wrap gap-4 text-sm">
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-green-200 border border-green-500 rounded mr-2"></div>
+                    <span>Aulas Normais</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-yellow-200 border border-yellow-500 rounded mr-2"></div>
+                    <span>Com Exceções</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-red-200 border border-red-500 rounded mr-2"></div>
+                    <span>Aulas Excluídas</span>
                 </div>
             </div>
 
-            <!-- Grade Settings -->
-            <div id="gradeSettings" class="settings-panel hidden">
-                <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold text-gray-800">
-                            <i class="fas fa-calendar-alt text-green-600 mr-2"></i>Grade de Aulas
-                        </h3>
-                        <button onclick="addAula()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Nova Aula
-                        </button>
-                    </div>
-
-                    <div id="aulaList" class="space-y-4">
-                        <!-- Aula list will be populated by JavaScript -->
-                    </div>
+            <!-- Calendário -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <!-- Cabeçalho dos dias da semana -->
+                <div class="grid grid-cols-7 bg-gray-100">
+                    <div class="p-4 text-center font-semibold text-gray-700">Dom</div>
+                    <div class="p-4 text-center font-semibold text-gray-700">Seg</div>
+                    <div class="p-4 text-center font-semibold text-gray-700">Ter</div>
+                    <div class="p-4 text-center font-semibold text-gray-700">Qua</div>
+                    <div class="p-4 text-center font-semibold text-gray-700">Qui</div>
+                    <div class="p-4 text-center font-semibold text-gray-700">Sex</div>
+                    <div class="p-4 text-center font-semibold text-gray-700">Sáb</div>
                 </div>
-            </div>
-
-            <!-- System Settings -->
-            <div id="systemSettings" class="settings-panel hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                            <i class="fas fa-cog text-purple-600 mr-2"></i>Configurações Gerais
-                        </h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Valor padrão por hora</label>
-                                <input type="number" id="valorPadrao" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="25.00">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Duração padrão das aulas (horas)</label>
-                                <select id="duracaoPadrao" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="1">1 hora</option>
-                                    <option value="1.5">1,5 horas</option>
-                                    <option value="2" selected>2 horas</option>
-                                    <option value="2.5">2,5 horas</option>
-                                    <option value="3">3 horas</option>
-                                </select>
-                                <p class="text-sm text-gray-600 mt-2 bg-blue-50 p-3 rounded-lg">
-                                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                                    <strong>Como funciona:</strong> O sistema calcula automaticamente as horas com base no horário de início e fim de cada aula. Esta configuração serve apenas como sugestão ao criar novas aulas.
-                                </p>
-                            </div>
-                        </div>
-                        <button onclick="saveSystemSettings()" class="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-save mr-2"></i>Salvar Configurações
-                        </button>
-                    </div>
-
-                    <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                            <i class="fas fa-database text-orange-600 mr-2"></i>Backup & Restore
-                        </h3>
-                        <div class="space-y-4">
-                            <button onclick="exportData()" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
-                                <i class="fas fa-download mr-2"></i>Exportar Dados
-                            </button>
-                            <button onclick="document.getElementById('importFile').click()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                <i class="fas fa-upload mr-2"></i>Importar Dados
-                            </button>
-                            <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
-                            <button onclick="resetSystem()" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">
-                                <i class="fas fa-trash-alt mr-2"></i>Resetar Sistema
-                            </button>
-                        </div>
-                    </div>
+                <!-- Dias do mês -->
+                <div id="calendarGrid" class="grid grid-cols-7">
+                    <!-- Será preenchido pelo JavaScript -->
                 </div>
             </div>
         </div>
-    </main>
 
-    <!-- Modals -->
-    <!-- Educador Modal -->
-    <div id="educadorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="educadorModalTitle" class="text-lg font-semibold text-gray-800">Novo Educador</h3>
-                <button onclick="closeEducadorModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+        <!-- GRADE BASE SEMANAL -->
+        <div id="gradeBase" class="view">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Grade Base Semanal</h2>
+                <p class="text-gray-600">Configure os horários padrão para cada dia da semana</p>
             </div>
-            <form id="educadorForm" onsubmit="saveEducador(event)">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
-                        <input type="text" id="educadorNome" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome do educador">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Valor por hora (R$)</label>
-                        <input type="number" id="educadorValor" step="0.01" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="25.00">
-                    </div>
-                </div>
-                <div class="flex space-x-4 mt-6">
-                    <button type="button" onclick="closeEducadorModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        Salvar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Aula Modal -->
-    <div id="aulaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="aulaModalTitle" class="text-lg font-semibold text-gray-800">Nova Aula</h3>
-                <button onclick="closeAulaModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <form id="aulaForm" onsubmit="saveAula(event)">
-                <div class="space-y-4">
+            <!-- Adicionar Nova Aula -->
+            <div class="bg-white rounded-xl p-6 shadow-lg mb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-plus text-blue-600 mr-2"></i>Adicionar Horário na Grade Base
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Dia da Semana</label>
-                        <select id="aulaDia" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Selecione...</option>
+                        <select id="novoDiaSemana" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <option value="">Selecione o dia</option>
                             <option value="1">Segunda-feira</option>
                             <option value="2">Terça-feira</option>
                             <option value="3">Quarta-feira</option>
                             <option value="4">Quinta-feira</option>
                             <option value="5">Sexta-feira</option>
                             <option value="6">Sábado</option>
+                            <option value="0">Domingo</option>
                         </select>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Horário Início</label>
-                            <input type="time" id="aulaInicio" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Horário Fim</label>
-                            <input type="time" id="aulaFim" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Horário de Início</label>
+                        <input type="time" id="novoHorarioInicio" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                     </div>
-                    <div id="duracaoInfo" class="mt-2 p-2 bg-gray-50 rounded-lg text-sm text-gray-600 hidden">
-                        <i class="fas fa-clock mr-1"></i>
-                        Duração: <span id="duracaoHoras">-</span>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Duração (horas)</label>
+                        <input type="number" id="novaDuracao" min="0.5" max="8" step="0.5" value="2" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Educador</label>
-                        <select id="aulaEducador" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Selecione...</option>
+                        <select id="novoEducador" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <option value="">Selecione o educador</option>
+                            <!-- Será preenchido pelo JavaScript -->
                         </select>
                     </div>
                 </div>
-                <div class="flex space-x-4 mt-6">
-                    <button type="button" onclick="closeAulaModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                        Salvar
+                <div class="mt-4">
+                    <button onclick="adicionarAulaBase()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i>Adicionar à Grade Base
                     </button>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Módulo de Ocorrências -->
-    <div id="ocorrencias" class="view hidden">
-        <div class="mb-8">
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Gestão de Ocorrências</h2>
-            <p class="text-gray-600">Gerenciar faltas, substituições, licenças e impedimentos</p>
-        </div>
-
-        <!-- Tabs -->
-        <div class="mb-6">
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8">
-                    <button onclick="showOcorrenciaTab('faltas')" class="ocorrencia-tab py-2 px-1 border-b-2 font-medium text-sm text-purple-600 border-purple-500" data-tab="faltas">
-                        <i class="fas fa-user-times mr-2"></i>Faltas & Substituições
-                    </button>
-                    <button onclick="showOcorrenciaTab('licencas')" class="ocorrencia-tab py-2 px-1 border-b-2 font-medium text-sm text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300" data-tab="licencas">
-                        <i class="fas fa-calendar-times mr-2"></i>Licenças & Afastamentos
-                    </button>
-                    <button onclick="showOcorrenciaTab('impedimentos')" class="ocorrencia-tab py-2 px-1 border-b-2 font-medium text-sm text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300" data-tab="impedimentos">
-                        <i class="fas fa-ban mr-2"></i>Recessos & Impedimentos
-                    </button>
-                    <button onclick="showOcorrenciaTab('substitutos')" class="ocorrencia-tab py-2 px-1 border-b-2 font-medium text-sm text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300" data-tab="substitutos">
-                        <i class="fas fa-user-plus mr-2"></i>Substitutos
-                    </button>
-                </nav>
             </div>
-        </div>
 
-        <!-- Tab Content: Faltas & Substituições -->
-        <div id="tabFaltas" class="ocorrencia-content">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Registrar Falta/Substituição</h3>
-                    <button onclick="openFaltaModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Nova Ocorrência
-                    </button>
+            <!-- Lista da Grade Base -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b">
+                    <h3 class="text-lg font-semibold text-gray-800">Grade Base Configurada</h3>
                 </div>
-                <div id="faltasList" class="space-y-3">
-                    <!-- Lista de faltas será preenchida dinamicamente -->
+                <div class="divide-y divide-gray-200" id="listaGradeBase">
+                    <!-- Será preenchido pelo JavaScript -->
                 </div>
             </div>
         </div>
 
-        <!-- Tab Content: Licenças & Afastamentos -->
-        <div id="tabLicencas" class="ocorrencia-content hidden">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Licenças e Afastamentos</h3>
-                    <button onclick="openLicencaModal()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Nova Licença
+        <!-- EDUCADORES -->
+        <div id="educadores" class="view">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Gerenciar Educadores</h2>
+                <p class="text-gray-600">Cadastre e gerencie os educadores</p>
+            </div>
+
+            <!-- Adicionar Educador -->
+            <div class="bg-white rounded-xl p-6 shadow-lg mb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-user-plus text-blue-600 mr-2"></i>Adicionar Educador
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                        <input type="text" id="nomeEducador" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Digite o nome do educador">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Especialidade</label>
+                        <input type="text" id="especialidadeEducador" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Ex: Matemática, Física...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Valor/Hora (R$)</label>
+                        <input type="number" id="valorHora" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button onclick="adicionarEducador()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">
+                        <i class="fas fa-plus mr-2"></i>Adicionar Educador
                     </button>
                 </div>
-                <div id="licencasList" class="space-y-3">
-                    <!-- Lista de licenças será preenchida dinamicamente -->
+            </div>
+
+            <!-- Lista de Educadores -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b">
+                    <h3 class="text-lg font-semibold text-gray-800">Educadores Cadastrados</h3>
+                </div>
+                <div class="divide-y divide-gray-200" id="listaEducadores">
+                    <!-- Será preenchido pelo JavaScript -->
                 </div>
             </div>
         </div>
 
-        <!-- Tab Content: Recessos & Impedimentos -->
-        <div id="tabImpedimentos" class="ocorrencia-content hidden">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Recessos e Impedimentos</h3>
-                    <button onclick="openImpedimentoModal()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Novo Impedimento
+        <!-- RELATÓRIOS -->
+        <div id="relatorios" class="view">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Relatórios Mensais</h2>
+                <p class="text-gray-600">Visualize pagamentos e estatísticas por mês</p>
+            </div>
+
+            <!-- Seletor de Mês -->
+            <div class="bg-white rounded-xl p-6 shadow-lg mb-6">
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm font-medium text-gray-700">Selecionar Mês/Ano:</label>
+                    <select id="reportMonth" class="border border-gray-300 rounded-lg px-3 py-2">
+                        <!-- Será preenchido pelo JavaScript -->
+                    </select>
+                    <select id="reportYear" class="border border-gray-300 rounded-lg px-3 py-2">
+                        <!-- Será preenchido pelo JavaScript -->
+                    </select>
+                    <button onclick="gerarRelatorio()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-chart-bar mr-2"></i>Gerar Relatório
                     </button>
-                </div>
-                <div id="impedimentosList" class="space-y-3">
-                    <!-- Lista de impedimentos será preenchida dinamicamente -->
                 </div>
             </div>
-        </div>
 
-        <!-- Tab Content: Substitutos -->
-        <div id="tabSubstitutos" class="ocorrencia-content hidden">
-            <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">Banco de Substitutos</h3>
-                    <button onclick="openSubstitutoModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Novo Substituto
-                    </button>
-                </div>
-                <div id="substitutosList" class="space-y-3">
-                    <!-- Lista de substitutos será preenchida dinamicamente -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Falta/Substituição -->
-    <div id="faltaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Registrar Falta/Substituição</h3>
-            <form id="faltaForm">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
-                        <input type="date" id="faltaData" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Educador</label>
-                        <select id="faltaEducador" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-                            <option value="">Selecione...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-                        <select id="faltaTipo" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-                            <option value="">Selecione...</option>
-                            <option value="falta">Falta</option>
-                            <option value="substituicao">Substituição</option>
-                        </select>
-                    </div>
-                    <div id="substitutoDiv" class="hidden">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Substituto</label>
-                        <select id="faltaSubstituto" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-                            <option value="">Selecione...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Motivo</label>
-                        <textarea id="faltaMotivo" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="flex space-x-4 mt-6">
-                    <button type="button" onclick="closeFaltaModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">
-                        Salvar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Licença -->
-    <div id="licencaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Registrar Licença/Afastamento</h3>
-            <form id="licencaForm">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Educador</label>
-                        <select id="licencaEducador" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <option value="">Selecione...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-                        <select id="licencaTipo" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <option value="">Selecione...</option>
-                            <option value="licenca-medica">Licença Médica</option>
-                            <option value="licenca-maternidade">Licença Maternidade</option>
-                            <option value="licenca-luto">Licença Luto</option>
-                            <option value="afastamento">Afastamento</option>
-                            <option value="capacitacao">Capacitação</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
+            <!-- Estatísticas do Mês -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="card bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
-                            <input type="date" id="licencaInicio" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <p class="text-sm text-gray-500 font-medium">Total de Educadores</p>
+                            <p id="totalEducadoresReport" class="text-2xl font-bold text-gray-800">0</p>
                         </div>
+                        <i class="fas fa-users text-blue-600 text-2xl"></i>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
-                            <input type="date" id="licencaFim" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <p class="text-sm text-gray-500 font-medium">Aulas Realizadas</p>
+                            <p id="totalAulasRealizadas" class="text-2xl font-bold text-gray-800">0</p>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
-                        <textarea id="licencaObservacoes" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" rows="3"></textarea>
+                        <i class="fas fa-chalkboard-teacher text-green-600 text-2xl"></i>
                     </div>
                 </div>
-                <div class="flex space-x-4 mt-6">
-                    <button type="button" onclick="closeLicencaModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors">
-                        Salvar
+
+                <div class="card bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Aulas Excluídas</p>
+                            <p id="totalAulasExcluidas" class="text-2xl font-bold text-gray-800">0</p>
+                        </div>
+                        <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+                    </div>
+                </div>
+
+                <div class="card bg-white rounded-xl p-6 shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Valor Total</p>
+                            <p id="valorTotalMes" class="text-2xl font-bold text-gray-800">R$ 0,00</p>
+                        </div>
+                        <i class="fas fa-dollar-sign text-purple-600 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relatório por Educador -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b">
+                    <h3 class="text-lg font-semibold text-gray-800" id="tituloRelatorio">Relatório Mensal por Educador</h3>
+                </div>
+                <div id="relatorioEducadores">
+                    <!-- Será preenchido pelo JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- BACKUP -->
+        <div id="backup" class="view">
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">Backup e Restauração</h2>
+                <p class="text-gray-600">Faça backup dos seus dados ou restaure informações</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl p-6 shadow-lg">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-download text-blue-600 mr-2"></i>Exportar Dados
+                    </h3>
+                    <p class="text-gray-600 mb-4">Baixe um arquivo com todos os dados do sistema</p>
+                    <button onclick="exportarDados()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg w-full">
+                        <i class="fas fa-download mr-2"></i>Exportar Backup
                     </button>
                 </div>
-            </form>
+
+                <div class="bg-white rounded-xl p-6 shadow-lg">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-upload text-green-600 mr-2"></i>Importar Dados
+                    </h3>
+                    <p class="text-gray-600 mb-4">Restaure dados de um arquivo de backup</p>
+                    <input type="file" id="arquivoBackup" accept=".json" class="mb-3 w-full">
+                    <button onclick="importarDados()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full">
+                        <i class="fas fa-upload mr-2"></i>Importar Backup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para editar dia específico -->
+    <div id="modalDia" class="modal">
+        <div class="bg-white rounded-xl p-6 shadow-xl w-full max-w-4xl mx-4 max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitulo" class="text-2xl font-bold text-gray-800"></h3>
+                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div id="modalConteudo">
+                <!-- Será preenchido pelo JavaScript -->
+            </div>
         </div>
     </div>
 
-    <!-- Modal: Impedimento -->
-    <div id="impedimentoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Registrar Recesso/Impedimento</h3>
-            <form id="impedimentoForm">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-                        <select id="impedimentoTipo" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                            <option value="">Selecione...</option>
-                            <option value="recesso">Recesso Escolar</option>
-                            <option value="feriado">Feriado</option>
-                            <option value="greve">Greve</option>
-                            <option value="emergencia">Emergência</option>
-                            <option value="clima">Condições Climáticas</option>
-                            <option value="manutencao">Manutenção</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
-                            <input type="date" id="impedimentoInicio" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
-                            <input type="date" id="impedimentoFim" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
-                        <input type="text" id="impedimentoDescricao" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
-                        <textarea id="impedimentoObservacoes" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-500" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="flex space-x-4 mt-6">
-                    <button type="button" onclick="closeImpedimentoModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                        Salvar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Substituto -->
-    <div id="substitutoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Cadastrar Substituto</h3>
-            <form id="substitutoForm">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
-                        <input type="text" id="substitutoNome" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
-                        <input type="tel" id="substitutoTelefone" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" id="substitutoEmail" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Especialidades</label>
-                        <textarea id="substitutoEspecialidades" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" rows="3" placeholder="Ex: Matemática, Física, Ensino Fundamental..."></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Valor por Hora</label>
-                        <input type="number" id="substitutoValor" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="substitutoAtivo" checked class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                        <label for="substitutoAtivo" class="ml-2 block text-sm text-gray-700">Disponível</label>
-                    </div>
-                </div>
-                <div class="flex space-x-4 mt-6">
-                    <button type="button" onclick="closeSubstitutoModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
-                        Salvar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script type="module">
-        // Global State
-        let currentView = 'dashboard';
-        let currentMonth = new Date();
-        let editingEducador = null;
-        let editingAula = null;
-
-        // Data Management
-        const storage = {
-            getEducadores: () => JSON.parse(localStorage.getItem('educontrol_educadores') || '[]'),
-            setEducadores: (data) => localStorage.setItem('educontrol_educadores', JSON.stringify(data)),
-            getAulas: () => JSON.parse(localStorage.getItem('educontrol_aulas') || '[]'),
-            setAulas: (data) => localStorage.setItem('educontrol_aulas', JSON.stringify(data)),
-            getSettings: () => JSON.parse(localStorage.getItem('educontrol_settings') || '{"valorPadrao": 25, "duracaoPadrao": 2}'),
-            setSettings: (data) => localStorage.setItem('educontrol_settings', JSON.stringify(data)),
-            getOcorrencias: () => JSON.parse(localStorage.getItem('educontrol_ocorrencias') || '[]'),
-            setOcorrencias: (data) => localStorage.setItem('educontrol_ocorrencias', JSON.stringify(data)),
-            getLicencas: () => JSON.parse(localStorage.getItem('educontrol_licencas') || '[]'),
-            setLicencas: (data) => localStorage.setItem('educontrol_licencas', JSON.stringify(data)),
-            getSubstitutos: () => JSON.parse(localStorage.getItem('educontrol_substitutos') || '[]'),
-            setSubstitutos: (data) => localStorage.setItem('educontrol_substitutos', JSON.stringify(data)),
-            getImpedimentos: () => JSON.parse(localStorage.getItem('educontrol_impedimentos') || '[]'),
-            setImpedimentos: (data) => localStorage.setItem('educontrol_impedimentos', JSON.stringify(data))
+    <script>
+        // Estado global da aplicação
+        const state = {
+            currentMonth: new Date().getMonth(),
+            currentYear: new Date().getFullYear(),
+            educadores: JSON.parse(localStorage.getItem('educadores') || '[]'),
+            gradeBase: JSON.parse(localStorage.getItem('gradeBase') || '[]'),
+            excecoes: JSON.parse(localStorage.getItem('excecoes') || '{}')
         };
 
-        // Utility Functions
-        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-        const formatTime = (time) => time.substr(0, 5);
-        const getDayName = (dayNum) => ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][dayNum];
+        // Nomes dos meses e dias
+        const meses = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
 
-        // Holiday API Integration
-        async function getFeriados(year) {
-            try {
-                const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
-                const feriados = await response.json();
-                return feriados.map(f => new Date(f.date + 'T00:00:00'));
-            } catch (error) {
-                console.warn('Erro ao buscar feriados:', error);
-                return [];
+        const diasSemana = [
+            'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+            'Quinta-feira', 'Sexta-feira', 'Sábado'
+        ];
+
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', function() {
+            // Adicionar educadores padrão se não existirem
+            if (state.educadores.length === 0) {
+                state.educadores = [
+                    { id: '1', nome: 'Prof. Maria Silva', especialidade: 'Matemática', valorHora: 50 },
+                    { id: '2', nome: 'Prof. João Santos', especialidade: 'Física', valorHora: 45 }
+                ];
+                salvarDados();
+            }
+            
+            // Inicializar interface
+            showCalendar();
+            renderCalendar();
+            preencherSelectEducadores();
+        });
+
+        // Navegação entre views
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function showCalendar() { 
+            showView('calendario'); 
+            renderCalendar();
+        }
+        function showGradeBase() { 
+            showView('gradeBase');
+            renderGradeBase();
+            preencherSelectEducadores();
+        }
+        function showEducadores() { 
+            showView('educadores');
+            renderEducadores();
+        }
+        function showReports() { 
+            showView('relatorios');
+            updateReports();
+        }
+        function showBackup() { showView('backup'); }
+
+        // Funções do calendário
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthTitle = document.getElementById('currentMonth');
+            
+            if (!grid || !monthTitle) return;
+            
+            monthTitle.textContent = meses[state.currentMonth] + ' ' + state.currentYear;
+            
+            const firstDay = new Date(state.currentYear, state.currentMonth, 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 42; i++) {
+                const currentDate = new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000));
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day p-2';
+                
+                const isCurrentMonth = currentDate.getMonth() === state.currentMonth;
+                if (!isCurrentMonth) {
+                    dayElement.classList.add('opacity-30');
+                }
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'font-semibold text-gray-800 mb-1';
+                dayNumber.textContent = currentDate.getDate();
+                dayElement.appendChild(dayNumber);
+                
+                if (isCurrentMonth) {
+                    const aulasContainer = document.createElement('div');
+                    aulasContainer.className = 'space-y-1';
+                    
+                    const aulas = getAulasForDate(currentDate);
+                    let hasExceptions = false;
+                    let hasDeleted = false;
+                    
+                    aulas.forEach(aula => {
+                        const aulaElement = document.createElement('div');
+                        aulaElement.className = 'aula-item';
+                        
+                        if (aula.isDeleted) {
+                            aulaElement.classList.add('deleted');
+                            hasDeleted = true;
+                        } else if (aula.isException) {
+                            aulaElement.classList.add('exception');
+                            hasExceptions = true;
+                        }
+                        
+                        aulaElement.textContent = aula.horario + ' - ' + aula.educador;
+                        aulasContainer.appendChild(aulaElement);
+                    });
+                    
+                    dayElement.appendChild(aulasContainer);
+                    
+                    // Aplicar classes de status
+                    if (hasDeleted) {
+                        dayElement.classList.add('has-deleted');
+                    } else if (hasExceptions) {
+                        dayElement.classList.add('has-exceptions');
+                    } else if (aulas.length > 0) {
+                        dayElement.classList.add('has-classes');
+                    }
+                    
+                    // Adicionar evento de clique
+                    dayElement.addEventListener('click', () => abrirModalDia(currentDate));
+                }
+                
+                grid.appendChild(dayElement);
             }
         }
 
-        // Calendar Functions
-        function isWorkingDay(date) {
+        function getAulasForDate(date) {
             const dayOfWeek = date.getDay();
-            return dayOfWeek >= 1 && dayOfWeek <= 6; // Monday to Saturday
+            const dateKey = date.getFullYear() + '-' + 
+                          (date.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                          date.getDate().toString().padStart(2, '0');
+            
+            // Buscar aulas da grade base para este dia da semana
+            const aulasBase = state.gradeBase.filter(aula => aula.diaSemana == dayOfWeek);
+            
+            // Aplicar exceções
+            const excecoesDia = state.excecoes[dateKey] || {};
+            
+            return aulasBase.map(aulaBase => {
+                const aulaId = aulaBase.diaSemana + '-' + aulaBase.horarioInicio;
+                const excecao = excecoesDia[aulaId];
+                
+                if (excecao) {
+                    if (excecao.isDeleted) {
+                        return {
+                            ...aulaBase,
+                            horario: aulaBase.horarioInicio + ' (' + aulaBase.duracao + 'h)',
+                            educador: getEducadorNome(aulaBase.educadorId),
+                            isDeleted: true,
+                            isException: false
+                        };
+                    } else {
+                        return {
+                            ...aulaBase,
+                            educadorId: excecao.educadorId || aulaBase.educadorId,
+                            horario: aulaBase.horarioInicio + ' (' + aulaBase.duracao + 'h)',
+                            educador: getEducadorNome(excecao.educadorId || aulaBase.educadorId),
+                            isDeleted: false,
+                            isException: true
+                        };
+                    }
+                }
+                
+                return {
+                    ...aulaBase,
+                    horario: aulaBase.horarioInicio + ' (' + aulaBase.duracao + 'h)',
+                    educador: getEducadorNome(aulaBase.educadorId),
+                    isDeleted: false,
+                    isException: false
+                };
+            });
         }
 
-        async function calculateMonthlyClasses(month, year) {
-            const educadores = storage.getEducadores();
-            const aulas = storage.getAulas();
-            const feriados = await getFeriados(year);
-            const ocorrencias = storage.getOcorrencias();
-            const licencas = storage.getLicencas();
-            const impedimentos = storage.getImpedimentos();
-            const substitutos = storage.getSubstitutos();
-            
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            
-            const result = {};
-            educadores.forEach(educador => {
-                result[educador.id] = { nome: educador.nome, valor: educador.valor, horas: 0, aulas: 0, ocorrencias: 0 };
-            });
+        function previousMonth() {
+            if (state.currentMonth === 0) {
+                state.currentMonth = 11;
+                state.currentYear--;
+            } else {
+                state.currentMonth--;
+            }
+            renderCalendar();
+        }
 
-            // Add substitutos to result
-            substitutos.forEach(substituto => {
-                result[substituto.id] = { nome: substituto.nome + ' (Substituto)', valor: substituto.valor, horas: 0, aulas: 0, ocorrencias: 0 };
-            });
+        function nextMonth() {
+            if (state.currentMonth === 11) {
+                state.currentMonth = 0;
+                state.currentYear++;
+            } else {
+                state.currentMonth++;
+            }
+            renderCalendar();
+        }
 
-            for (let date = new Date(firstDay); date <= lastDay; date.setDate(date.getDate() + 1)) {
-                const dayOfWeek = date.getDay();
-                const dateStr = date.toISOString().split('T')[0];
-                const dateObj = new Date(date);
-                
-                // Skip sundays and holidays
-                if (dayOfWeek === 0) continue;
-                if (feriados.some(f => f.toDateString() === dateObj.toDateString())) continue;
-                
-                // Check impediments
-                const hasImpedimento = impedimentos.some(imp => 
-                    new Date(imp.inicio) <= dateObj && new Date(imp.fim) >= dateObj
-                );
-                if (hasImpedimento) continue;
-                
-                // Find scheduled classes for this day
-                const dayClasses = aulas.filter(aula => aula.dia === dayOfWeek && aula.ativo);
-                
-                dayClasses.forEach(aula => {
-                    const [startHour, startMin] = aula.inicio.split(':').map(Number);
-                    const [endHour, endMin] = aula.fim.split(':').map(Number);
-                    const duration = (endHour + endMin/60) - (startHour + startMin/60);
-                    
-                    let finalEducadorId = aula.educadorId;
-                    let aulaOcorreu = true;
-                    
-                    // Check if educator is on license
-                    const educadorLicenca = licencas.find(lic => 
-                        lic.educadorId === aula.educadorId &&
-                        new Date(lic.inicio) <= dateObj && 
-                        new Date(lic.fim) >= dateObj
-                    );
-                    
-                    if (educadorLicenca) {
-                        aulaOcorreu = false; // Aula cancelada por licença
+        function abrirModalDia(date) {
+            const modal = document.getElementById('modalDia');
+            const titulo = document.getElementById('modalTitulo');
+            const conteudo = document.getElementById('modalConteudo');
+            
+            const dateStr = date.toLocaleDateString('pt-BR');
+            const dayName = diasSemana[date.getDay()];
+            titulo.textContent = dayName + ', ' + dateStr;
+            
+            const aulas = getAulasForDate(date);
+            const dateKey = date.getFullYear() + '-' + 
+                          (date.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                          date.getDate().toString().padStart(2, '0');
+            
+            let html = '<div class="space-y-4">';
+            
+            if (aulas.length === 0) {
+                html += '<p class="text-gray-600">Nenhuma aula programada para este dia.</p>';
+            } else {
+                aulas.forEach((aula, index) => {
+                    const aulaId = aula.diaSemana + '-' + aula.horarioInicio;
+                    html += '<div class="border rounded-lg p-4 ' + 
+                           (aula.isDeleted ? 'bg-red-50 border-red-300' : 
+                            aula.isException ? 'bg-yellow-50 border-yellow-300' : 
+                            'bg-green-50 border-green-300') + '">';
+                    html += '<div class="flex justify-between items-center">';
+                    html += '<div>';
+                    html += '<h4 class="font-semibold' + (aula.isDeleted ? ' line-through text-red-600' : '') + '">' + aula.horario + '</h4>';
+                    html += '<p class="text-sm' + (aula.isDeleted ? ' line-through text-red-600' : '') + '">Educador: ' + aula.educador + '</p>';
+                    if (aula.isException) {
+                        html += '<span class="text-xs text-yellow-700 bg-yellow-200 px-2 py-1 rounded">Modificado</span>';
+                    }
+                    if (aula.isDeleted) {
+                        html += '<span class="text-xs text-red-700 bg-red-200 px-2 py-1 rounded">Excluído</span>';
+                    }
+                    html += '</div>';
+                    html += '<div class="flex space-x-2">';
+                    if (!aula.isDeleted) {
+                        html += '<button onclick="alterarEducadorAula(\'' + dateKey + '\', \'' + aulaId + '\', \'' + aula.educadorId + '\')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">';
+                        html += '<i class="fas fa-edit mr-1"></i>Alterar Educador';
+                        html += '</button>';
+                        html += '<button onclick="excluirAula(\'' + dateKey + '\', \'' + aulaId + '\')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">';
+                        html += '<i class="fas fa-trash mr-1"></i>Excluir';
+                        html += '</button>';
                     } else {
-                        // Check daily occurrences (faltas/substituições)
-                        const ocorrencia = ocorrencias.find(oc => 
-                            oc.data === dateStr && oc.educadorId === aula.educadorId
-                        );
-                        
-                        if (ocorrencia) {
-                            if (ocorrencia.tipo === 'falta') {
-                                aulaOcorreu = false; // Aula cancelada por falta
-                                if (result[aula.educadorId]) {
-                                    result[aula.educadorId].ocorrencias += 1;
-                                }
-                            } else if (ocorrencia.tipo === 'substituicao' && ocorrencia.substitutoId) {
-                                finalEducadorId = ocorrencia.substitutoId; // Aula dada pelo substituto
-                                if (result[aula.educadorId]) {
-                                    result[aula.educadorId].ocorrencias += 1;
-                                }
-                            }
+                        html += '<button onclick="restaurarAula(\'' + dateKey + '\', \'' + aulaId + '\')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">';
+                        html += '<i class="fas fa-undo mr-1"></i>Restaurar';
+                        html += '</button>';
+                    }
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+            }
+            
+            html += '</div>';
+            conteudo.innerHTML = html;
+            modal.classList.add('show');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalDia').classList.remove('show');
+        }
+
+        function alterarEducadorAula(dateKey, aulaId, educadorAtualId) {
+            const opcoes = state.educadores.map((edu, i) => (i + 1) + '. ' + edu.nome).join('\\n');
+            const novoEducadorNum = prompt('Selecione o novo educador:\\n' + opcoes + '\\n\\nDigite o número do educador:');
+            
+            const numeroSelecionado = parseInt(novoEducadorNum);
+            if (numeroSelecionado && numeroSelecionado > 0 && numeroSelecionado <= state.educadores.length) {
+                const educadorSelecionado = state.educadores[numeroSelecionado - 1];
+                
+                if (!state.excecoes[dateKey]) {
+                    state.excecoes[dateKey] = {};
+                }
+                
+                state.excecoes[dateKey][aulaId] = {
+                    educadorId: educadorSelecionado.id,
+                    isDeleted: false
+                };
+                
+                salvarDados();
+                renderCalendar();
+                fecharModal();
+                
+                // Reabrir modal para mostrar mudança
+                setTimeout(() => abrirModalDia(new Date(dateKey)), 100);
+            }
+        }
+
+        function excluirAula(dateKey, aulaId) {
+            if (confirm('Tem certeza que deseja excluir esta aula?')) {
+                if (!state.excecoes[dateKey]) {
+                    state.excecoes[dateKey] = {};
+                }
+                
+                state.excecoes[dateKey][aulaId] = {
+                    isDeleted: true
+                };
+                
+                salvarDados();
+                renderCalendar();
+                fecharModal();
+                
+                setTimeout(() => abrirModalDia(new Date(dateKey)), 100);
+            }
+        }
+
+        function restaurarAula(dateKey, aulaId) {
+            if (state.excecoes[dateKey] && state.excecoes[dateKey][aulaId]) {
+                delete state.excecoes[dateKey][aulaId];
+                if (Object.keys(state.excecoes[dateKey]).length === 0) {
+                    delete state.excecoes[dateKey];
+                }
+            }
+            
+            salvarDados();
+            renderCalendar();
+            fecharModal();
+            
+            setTimeout(() => abrirModalDia(new Date(dateKey)), 100);
+        }
+
+        // Funções de Educadores
+        function renderEducadores() {
+            const lista = document.getElementById('listaEducadores');
+            if (!lista) return;
+            
+            if (state.educadores.length === 0) {
+                lista.innerHTML = '<div class="p-6 text-center text-gray-600">Nenhum educador cadastrado.</div>';
+                return;
+            }
+            
+            lista.innerHTML = state.educadores.map(educador => 
+                '<div class="p-4 flex justify-between items-center">' +
+                '<div>' +
+                '<h4 class="font-semibold text-gray-800">' + educador.nome + '</h4>' +
+                '<p class="text-sm text-gray-600">Especialidade: ' + educador.especialidade + '</p>' +
+                '<p class="text-sm text-gray-600">Valor/hora: R$ ' + educador.valorHora.toFixed(2) + '</p>' +
+                '</div>' +
+                '<button onclick="removerEducador(\'' + educador.id + '\')" class="text-red-600 hover:text-red-800">' +
+                '<i class="fas fa-trash"></i>' +
+                '</button>' +
+                '</div>'
+            ).join('');
+        }
+
+        function adicionarEducador() {
+            const nome = document.getElementById('nomeEducador').value.trim();
+            const especialidade = document.getElementById('especialidadeEducador').value.trim();
+            const valorHora = parseFloat(document.getElementById('valorHora').value);
+            
+            if (!nome) {
+                alert('Por favor, informe o nome do educador.');
+                return;
+            }
+            
+            const educador = {
+                id: Date.now().toString(),
+                nome: nome,
+                especialidade: especialidade || 'Não informado',
+                valorHora: valorHora || 0
+            };
+            
+            state.educadores.push(educador);
+            salvarDados();
+            renderEducadores();
+            preencherSelectEducadores();
+            
+            // Limpar campos
+            document.getElementById('nomeEducador').value = '';
+            document.getElementById('especialidadeEducador').value = '';
+            document.getElementById('valorHora').value = '';
+            
+            alert('Educador adicionado com sucesso!');
+        }
+
+        function removerEducador(id) {
+            if (confirm('Tem certeza que deseja remover este educador?')) {
+                state.educadores = state.educadores.filter(edu => edu.id !== id);
+                salvarDados();
+                renderEducadores();
+                preencherSelectEducadores();
+            }
+        }
+
+        function getEducadorNome(id) {
+            const educador = state.educadores.find(edu => edu.id === id);
+            return educador ? educador.nome : 'Educador não encontrado';
+        }
+
+        function preencherSelectEducadores() {
+            const select = document.getElementById('novoEducador');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Selecione o educador</option>' +
+                state.educadores.map(edu => '<option value="' + edu.id + '">' + edu.nome + '</option>').join('');
+        }
+
+        // Funções da Grade Base
+        function renderGradeBase() {
+            const lista = document.getElementById('listaGradeBase');
+            if (!lista) return;
+            
+            if (state.gradeBase.length === 0) {
+                lista.innerHTML = '<div class="p-6 text-center text-gray-600">Nenhuma aula configurada na grade base.</div>';
+                return;
+            }
+            
+            // Organizar por dia da semana
+            const aulasPorDia = state.gradeBase.sort((a, b) => {
+                if (a.diaSemana !== b.diaSemana) {
+                    return a.diaSemana - b.diaSemana;
+                }
+                return a.horarioInicio.localeCompare(b.horarioInicio);
+            });
+            
+            lista.innerHTML = aulasPorDia.map(aula => 
+                '<div class="p-4 flex justify-between items-center">' +
+                '<div>' +
+                '<h4 class="font-semibold text-gray-800">' + diasSemana[aula.diaSemana] + '</h4>' +
+                '<p class="text-sm text-gray-600">' + aula.horarioInicio + ' - ' + aula.duracao + 'h</p>' +
+                '<p class="text-sm text-gray-600">Educador: ' + getEducadorNome(aula.educadorId) + '</p>' +
+                '</div>' +
+                '<button onclick="removerAulaBase(\'' + aula.id + '\')" class="text-red-600 hover:text-red-800">' +
+                '<i class="fas fa-trash"></i>' +
+                '</button>' +
+                '</div>'
+            ).join('');
+        }
+
+        function adicionarAulaBase() {
+            const diaSemana = document.getElementById('novoDiaSemana').value;
+            const horarioInicio = document.getElementById('novoHorarioInicio').value;
+            const duracao = parseFloat(document.getElementById('novaDuracao').value);
+            const educadorId = document.getElementById('novoEducador').value;
+            
+            if (!diaSemana || !horarioInicio || !duracao || !educadorId) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+            
+            // Verificar conflitos
+            const conflito = state.gradeBase.find(aula => 
+                aula.diaSemana == diaSemana && aula.horarioInicio === horarioInicio
+            );
+            
+            if (conflito) {
+                alert('Já existe uma aula neste dia da semana e horário.');
+                return;
+            }
+            
+            const aula = {
+                id: Date.now().toString(),
+                diaSemana: parseInt(diaSemana),
+                horarioInicio: horarioInicio,
+                duracao: duracao,
+                educadorId: educadorId
+            };
+            
+            state.gradeBase.push(aula);
+            salvarDados();
+            renderGradeBase();
+            
+            // Limpar campos
+            document.getElementById('novoDiaSemana').value = '';
+            document.getElementById('novoHorarioInicio').value = '';
+            document.getElementById('novaDuracao').value = '2';
+            document.getElementById('novoEducador').value = '';
+            
+            alert('Aula adicionada à grade base com sucesso!');
+            renderCalendar(); // Atualizar calendário
+        }
+
+        function removerAulaBase(id) {
+            if (confirm('Tem certeza que deseja remover esta aula da grade base?')) {
+                state.gradeBase = state.gradeBase.filter(aula => aula.id !== id);
+                salvarDados();
+                renderGradeBase();
+                renderCalendar();
+            }
+        }
+
+        // Funções de Relatórios
+        function updateReports() {
+            preencherSelectoresRelatorio();
+            gerarRelatorio();
+        }
+
+        function preencherSelectoresRelatorio() {
+            const monthSelect = document.getElementById('reportMonth');
+            const yearSelect = document.getElementById('reportYear');
+            
+            if (!monthSelect || !yearSelect) return;
+            
+            // Preencher meses
+            monthSelect.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = meses[i];
+                if (i === state.currentMonth) option.selected = true;
+                monthSelect.appendChild(option);
+            }
+            
+            // Preencher anos (apenas anos com dados ou ano atual)
+            yearSelect.innerHTML = '';
+            const anosComDados = new Set();
+            anosComDados.add(state.currentYear);
+            
+            // Verificar anos nas exceções
+            Object.keys(state.excecoes).forEach(dateKey => {
+                const year = parseInt(dateKey.split('-')[0]);
+                anosComDados.add(year);
+            });
+            
+            Array.from(anosComDados).sort((a, b) => b - a).forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === state.currentYear) option.selected = true;
+                yearSelect.appendChild(option);
+            });
+        }
+
+        function gerarRelatorio() {
+            const monthSelect = document.getElementById('reportMonth');
+            const yearSelect = document.getElementById('reportYear');
+            
+            if (!monthSelect || !yearSelect) return;
+            
+            const selectedMonth = parseInt(monthSelect.value);
+            const selectedYear = parseInt(yearSelect.value);
+            
+            const relatorio = calcularRelatorioMensal(selectedMonth, selectedYear);
+            exibirRelatorio(relatorio, selectedMonth, selectedYear);
+        }
+
+        function calcularRelatorioMensal(month, year) {
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const educadoresRelatorio = {};
+            let totalAulasRealizadas = 0;
+            let totalAulasExcluidas = 0;
+            let valorTotal = 0;
+            
+            // Inicializar relatório dos educadores
+            state.educadores.forEach(edu => {
+                educadoresRelatorio[edu.id] = {
+                    nome: edu.nome,
+                    valorHora: edu.valorHora,
+                    horasRealizadas: 0,
+                    horasExcluidas: 0,
+                    valorTotal: 0,
+                    detalhes: []
+                };
+            });
+            
+            // Processar cada dia do mês
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dayOfWeek = date.getDay();
+                const dateKey = year + '-' + (month + 1).toString().padStart(2, '0') + '-' + day.toString().padStart(2, '0');
+                
+                // Buscar aulas da grade base para este dia da semana
+                const aulasBase = state.gradeBase.filter(aula => aula.diaSemana === dayOfWeek);
+                
+                // Aplicar exceções
+                const excecoesDia = state.excecoes[dateKey] || {};
+                
+                aulasBase.forEach(aulaBase => {
+                    const aulaId = aulaBase.diaSemana + '-' + aulaBase.horarioInicio;
+                    const excecao = excecoesDia[aulaId];
+                    
+                    let educadorFinal = aulaBase.educadorId;
+                    let foiExcluida = false;
+                    
+                    if (excecao) {
+                        if (excecao.isDeleted) {
+                            foiExcluida = true;
+                            totalAulasExcluidas++;
+                        } else if (excecao.educadorId) {
+                            educadorFinal = excecao.educadorId;
                         }
                     }
                     
-                    // Count the class for the final educator
-                    if (aulaOcorreu && result[finalEducadorId]) {
-                        result[finalEducadorId].horas += duration;
-                        result[finalEducadorId].aulas += 1;
+                    if (!foiExcluida) {
+                        totalAulasRealizadas++;
+                        
+                        if (educadoresRelatorio[educadorFinal]) {
+                            educadoresRelatorio[educadorFinal].horasRealizadas += aulaBase.duracao;
+                            const valorAula = aulaBase.duracao * educadoresRelatorio[educadorFinal].valorHora;
+                            educadoresRelatorio[educadorFinal].valorTotal += valorAula;
+                            valorTotal += valorAula;
+                            
+                            educadoresRelatorio[educadorFinal].detalhes.push({
+                                data: dateKey,
+                                horario: aulaBase.horarioInicio,
+                                duracao: aulaBase.duracao,
+                                valor: valorAula,
+                                foiAlterado: excecao && excecao.educadorId
+                            });
+                        }
+                    } else {
+                        // Aula excluída
+                        if (educadoresRelatorio[aulaBase.educadorId]) {
+                            educadoresRelatorio[aulaBase.educadorId].horasExcluidas += aulaBase.duracao;
+                        }
                     }
                 });
             }
-
-            return result;
-        }
-
-        // View Functions
-        window.showDashboard = function() {
-            showView('dashboard');
-            updateDashboard();
-        }
-
-        window.showCalendar = function() {
-            showView('calendar');
-            updateCalendar();
-        }
-
-        window.showReports = function() {
-            showView('reports');
-            populateReportFilters();
-            generateReport();
-        }
-
-        window.showSettings = function() {
-            showView('settings');
-            showEducadorSettings();
-        }
-
-        window.showOcorrencias = function() {
-            showView('ocorrencias');
-            showOcorrenciaTab('faltas');
-        }
-
-        function showView(viewName) {
-            document.querySelectorAll('.view').forEach(view => view.classList.add('hidden'));
-            document.getElementById(viewName).classList.remove('hidden');
-            document.getElementById(viewName).classList.add('fade-in');
-            currentView = viewName;
-        }
-
-        // Dashboard Functions
-        async function updateDashboard() {
-            const educadores = storage.getEducadores();
-            const aulas = storage.getAulas();
             
-            if (educadores.length === 0) {
-                document.getElementById('setupMessage').classList.remove('hidden');
-                return;
-            } else {
-                document.getElementById('setupMessage').classList.add('hidden');
-            }
-
-            // Update stats
-            document.getElementById('totalEducadores').textContent = educadores.filter(e => e.ativo).length;
-            
-            // Update month selector
-            const mesSelect = document.getElementById('mesSelect');
-            if (mesSelect.children.length === 0) {
-                populateMonthSelector(mesSelect);
-            }
-
-            const selectedMonth = parseInt(mesSelect.value.split('-')[1]) - 1;
-            const selectedYear = parseInt(mesSelect.value.split('-')[0]);
-            
-            const monthlyData = await calculateMonthlyClasses(selectedMonth, selectedYear);
-            
-            let totalAulas = 0, totalHoras = 0, totalPagar = 0;
-            Object.values(monthlyData).forEach(data => {
-                totalAulas += data.aulas;
-                totalHoras += data.horas;
-                totalPagar += data.horas * data.valor;
-            });
-
-            document.getElementById('totalAulas').textContent = totalAulas;
-            document.getElementById('totalHoras').textContent = totalHoras.toFixed(1) + 'h';
-            document.getElementById('totalPagar').textContent = formatCurrency(totalPagar);
-
-            // Update monthly summary
-            updateResumoMes(monthlyData);
-            updateEducadorComparativo(monthlyData);
-        }
-
-        function populateMonthSelector(select) {
-            const currentDate = new Date();
-            for (let i = -6; i <= 6; i++) {
-                const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-                const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                const text = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                const option = new Option(text, value);
-                if (i === 0) option.selected = true;
-                select.add(option);
-            }
-        }
-
-        function updateResumoMes(monthlyData) {
-            const resumoMes = document.getElementById('resumoMes');
-            resumoMes.innerHTML = '';
-
-            Object.values(monthlyData).forEach(data => {
-                if (data.horas > 0 || data.ocorrencias > 0) {
-                    const total = data.horas * data.valor;
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center py-2 border-b border-gray-100 last:border-0';
-                    div.innerHTML = `
-                        <div>
-                            <p class="font-medium text-gray-800">${data.nome}</p>
-                            <p class="text-sm text-gray-500">
-                                ${data.aulas} aulas • ${data.horas.toFixed(1)}h • ${formatCurrency(data.valor)}/h
-                                ${data.ocorrencias > 0 ? ` • ${data.ocorrencias} ocorrência(s)` : ''}
-                            </p>
-                        </div>
-                        <p class="font-semibold text-green-600">${formatCurrency(total)}</p>
-                    `;
-                    resumoMes.appendChild(div);
-                }
-            });
-        }
-
-        function updateEducadorComparativo(monthlyData) {
-            const educadorComparativo = document.getElementById('educadorComparativo');
-            const educadoresAtivos = Object.values(monthlyData).filter(d => d.horas > 0);
-            
-            if (educadoresAtivos.length === 0) {
-                educadorComparativo.innerHTML = `
-                    <div class="text-center py-4 text-gray-500">
-                        <i class="fas fa-info-circle text-2xl mb-2"></i>
-                        <p>Nenhuma aula programada neste mês</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Sort by total payment (descending)
-            educadoresAtivos.sort((a, b) => (b.horas * b.valor) - (a.horas * a.valor));
-            const totalGeral = educadoresAtivos.reduce((sum, d) => sum + (d.horas * d.valor), 0);
-            
-            educadorComparativo.innerHTML = educadoresAtivos.map((data, index) => {
-                const total = data.horas * data.valor;
-                const percentual = totalGeral > 0 ? ((total / totalGeral) * 100) : 0;
-                const isTop = index === 0;
-                
-                return `
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors ${isTop ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200' : ''}">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 ${isTop ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center">
-                                ${isTop ? '<i class="fas fa-crown text-yellow-600"></i>' : '<i class="fas fa-user text-blue-600"></i>'}
-                            </div>
-                            <div>
-                                <h4 class="font-medium text-gray-800">${data.nome}</h4>
-                                <p class="text-sm text-gray-500">${data.aulas} aulas • ${data.horas.toFixed(1)}h • ${formatCurrency(data.valor)}/h</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-lg font-bold ${isTop ? 'text-green-600' : 'text-blue-600'}">${formatCurrency(total)}</p>
-                            <p class="text-sm text-gray-500">${percentual.toFixed(1)}% do total</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Add total summary
-            if (educadoresAtivos.length > 1) {
-                educadorComparativo.innerHTML += `
-                    <div class="mt-4 p-3 bg-gray-100 rounded-lg">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium text-gray-700">
-                                <i class="fas fa-calculator mr-1"></i>
-                                Total Combinado:
-                            </span>
-                            <span class="text-lg font-bold text-gray-800">${formatCurrency(totalGeral)}</span>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        // Settings Functions
-        window.showEducadorSettings = function() {
-            document.querySelectorAll('.settings-tab').forEach(tab => {
-                tab.className = 'settings-tab bg-gray-200 text-gray-700 px-4 py-2 rounded-lg';
-            });
-            document.getElementById('educadorTab').className = 'settings-tab bg-blue-600 text-white px-4 py-2 rounded-lg';
-            
-            document.querySelectorAll('.settings-panel').forEach(panel => panel.classList.add('hidden'));
-            document.getElementById('educadorSettings').classList.remove('hidden');
-            
-            updateEducadorList();
-        }
-
-        window.showGradeSettings = function() {
-            document.querySelectorAll('.settings-tab').forEach(tab => {
-                tab.className = 'settings-tab bg-gray-200 text-gray-700 px-4 py-2 rounded-lg';
-            });
-            document.getElementById('gradeTab').className = 'settings-tab bg-blue-600 text-white px-4 py-2 rounded-lg';
-            
-            document.querySelectorAll('.settings-panel').forEach(panel => panel.classList.add('hidden'));
-            document.getElementById('gradeSettings').classList.remove('hidden');
-            
-            updateAulaList();
-        }
-
-        window.showSystemSettings = function() {
-            document.querySelectorAll('.settings-tab').forEach(tab => {
-                tab.className = 'settings-tab bg-gray-200 text-gray-700 px-4 py-2 rounded-lg';
-            });
-            document.getElementById('systemTab').className = 'settings-tab bg-blue-600 text-white px-4 py-2 rounded-lg';
-            
-            document.querySelectorAll('.settings-panel').forEach(panel => panel.classList.add('hidden'));
-            document.getElementById('systemSettings').classList.remove('hidden');
-            
-            const settings = storage.getSettings();
-            document.getElementById('valorPadrao').value = settings.valorPadrao;
-            document.getElementById('duracaoPadrao').value = settings.duracaoPadrao;
-        }
-
-        // Educador Management
-        function updateEducadorList() {
-            const educadores = storage.getEducadores();
-            const educadorList = document.getElementById('educadorList');
-            
-            if (educadores.length === 0) {
-                educadorList.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-users text-4xl mb-4"></i>
-                        <p>Nenhum educador cadastrado</p>
-                    </div>
-                `;
-                return;
-            }
-
-            educadorList.innerHTML = educadores.map(educador => `
-                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-user text-blue-600"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-800">${educador.nome}</h4>
-                            <p class="text-sm text-gray-500">${formatCurrency(educador.valor)}/hora</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-1 text-xs rounded-full ${educador.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${educador.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                        <button onclick="editEducador('${educador.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button onclick="toggleEducador('${educador.id}')" class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                            <i class="fas fa-${educador.ativo ? 'eye-slash' : 'eye'}"></i>
-                        </button>
-                        <button onclick="deleteEducador('${educador.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        window.addEducador = function() {
-            editingEducador = null;
-            document.getElementById('educadorModalTitle').textContent = 'Novo Educador';
-            document.getElementById('educadorNome').value = '';
-            document.getElementById('educadorValor').value = storage.getSettings().valorPadrao;
-            document.getElementById('educadorModal').classList.remove('hidden');
-            document.getElementById('educadorModal').classList.add('flex');
-        }
-
-        window.editEducador = function(id) {
-            const educadores = storage.getEducadores();
-            const educador = educadores.find(e => e.id === id);
-            if (!educador) return;
-
-            editingEducador = id;
-            document.getElementById('educadorModalTitle').textContent = 'Editar Educador';
-            document.getElementById('educadorNome').value = educador.nome;
-            document.getElementById('educadorValor').value = educador.valor;
-            document.getElementById('educadorModal').classList.remove('hidden');
-            document.getElementById('educadorModal').classList.add('flex');
-        }
-
-        window.saveEducador = function(event) {
-            event.preventDefault();
-            
-            const nome = document.getElementById('educadorNome').value;
-            const valor = parseFloat(document.getElementById('educadorValor').value);
-            
-            const educadores = storage.getEducadores();
-            
-            if (editingEducador) {
-                const index = educadores.findIndex(e => e.id === editingEducador);
-                if (index !== -1) {
-                    educadores[index] = { ...educadores[index], nome, valor };
-                }
-            } else {
-                const newEducador = {
-                    id: 'edu_' + Date.now(),
-                    nome,
-                    valor,
-                    ativo: true,
-                    criado: new Date().toISOString()
-                };
-                educadores.push(newEducador);
-            }
-            
-            storage.setEducadores(educadores);
-            closeEducadorModal();
-            updateEducadorList();
-            updateAulaEducadorSelect();
-            updateDashboard();
-        }
-
-        window.toggleEducador = function(id) {
-            const educadores = storage.getEducadores();
-            const index = educadores.findIndex(e => e.id === id);
-            if (index !== -1) {
-                educadores[index].ativo = !educadores[index].ativo;
-                storage.setEducadores(educadores);
-                updateEducadorList();
-                updateDashboard();
-            }
-        }
-
-        window.deleteEducador = function(id) {
-            if (confirm('Tem certeza que deseja excluir este educador?')) {
-                const educadores = storage.getEducadores();
-                const filtered = educadores.filter(e => e.id !== id);
-                storage.setEducadores(filtered);
-                
-                // Also remove from scheduled classes
-                const aulas = storage.getAulas();
-                const filteredAulas = aulas.filter(a => a.educadorId !== id);
-                storage.setAulas(filteredAulas);
-                
-                updateEducadorList();
-                updateAulaList();
-                updateAulaEducadorSelect();
-                updateDashboard();
-            }
-        }
-
-        window.closeEducadorModal = function() {
-            document.getElementById('educadorModal').classList.add('hidden');
-            document.getElementById('educadorModal').classList.remove('flex');
-        }
-
-        // Aula Management
-        function updateAulaList() {
-            const aulas = storage.getAulas();
-            const educadores = storage.getEducadores();
-            const aulaList = document.getElementById('aulaList');
-            
-            if (aulas.length === 0) {
-                aulaList.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-calendar-alt text-4xl mb-4"></i>
-                        <p>Nenhuma aula cadastrada</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const sortedAulas = aulas.sort((a, b) => {
-                if (a.dia !== b.dia) return a.dia - b.dia;
-                return a.inicio.localeCompare(b.inicio);
-            });
-
-            aulaList.innerHTML = sortedAulas.map(aula => {
-                const educador = educadores.find(e => e.id === aula.educadorId);
-                const educadorNome = educador ? educador.nome : 'Educador não encontrado';
-                
-                return `
-                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-chalkboard-teacher text-green-600"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-medium text-gray-800">${getDayName(aula.dia)}</h4>
-                                <p class="text-sm text-gray-500">${formatTime(aula.inicio)} às ${formatTime(aula.fim)} • ${educadorNome}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="px-2 py-1 text-xs rounded-full ${aula.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                ${aula.ativo ? 'Ativa' : 'Inativa'}
-                            </span>
-                            <button onclick="editAula('${aula.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="toggleAula('${aula.id}')" class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                                <i class="fas fa-${aula.ativo ? 'eye-slash' : 'eye'}"></i>
-                            </button>
-                            <button onclick="deleteAula('${aula.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateAulaEducadorSelect() {
-            const educadores = storage.getEducadores().filter(e => e.ativo);
-            const select = document.getElementById('aulaEducador');
-            
-            select.innerHTML = '<option value="">Selecione...</option>';
-            educadores.forEach(educador => {
-                const option = new Option(educador.nome, educador.id);
-                select.add(option);
-            });
-        }
-
-        window.addAula = function() {
-            editingAula = null;
-            document.getElementById('aulaModalTitle').textContent = 'Nova Aula';
-            document.getElementById('aulaDia').value = '';
-            document.getElementById('aulaInicio').value = '';
-            document.getElementById('aulaFim').value = '';
-            document.getElementById('aulaEducador').value = '';
-            updateAulaEducadorSelect();
-            
-            // Add event listeners for automatic end time calculation and duration display
-            const inicioInput = document.getElementById('aulaInicio');
-            const fimInput = document.getElementById('aulaFim');
-            
-            function updateDuracao() {
-                const inicio = inicioInput.value;
-                const fim = fimInput.value;
-                
-                if (inicio && fim) {
-                    const [inicioHora, inicioMin] = inicio.split(':').map(Number);
-                    const [fimHora, fimMin] = fim.split(':').map(Number);
-                    
-                    const inicioMinutos = inicioHora * 60 + inicioMin;
-                    const fimMinutos = fimHora * 60 + fimMin;
-                    const duracaoMinutos = fimMinutos - inicioMinutos;
-                    
-                    if (duracaoMinutos > 0) {
-                        const horas = Math.floor(duracaoMinutos / 60);
-                        const minutos = duracaoMinutos % 60;
-                        let duracaoTexto = '';
-                        
-                        if (horas > 0) duracaoTexto += `${horas}h`;
-                        if (minutos > 0) duracaoTexto += ` ${minutos}min`;
-                        
-                        document.getElementById('duracaoHoras').textContent = duracaoTexto.trim();
-                        document.getElementById('duracaoInfo').classList.remove('hidden');
-                    } else {
-                        document.getElementById('duracaoInfo').classList.add('hidden');
-                    }
-                } else {
-                    document.getElementById('duracaoInfo').classList.add('hidden');
-                }
-            }
-            
-            inicioInput.onchange = function() {
-                if (this.value && !fimInput.value) {
-                    const settings = storage.getSettings();
-                    const duracaoHoras = parseFloat(settings.duracaoPadrao || 2);
-                    
-                    const [hora, minuto] = this.value.split(':').map(Number);
-                    const inicioMinutos = hora * 60 + minuto;
-                    const fimMinutos = inicioMinutos + (duracaoHoras * 60);
-                    
-                    const fimHora = Math.floor(fimMinutos / 60);
-                    const fimMin = fimMinutos % 60;
-                    
-                    fimInput.value = `${String(fimHora).padStart(2, '0')}:${String(fimMin).padStart(2, '0')}`;
-                }
-                updateDuracao();
+            return {
+                totalEducadores: state.educadores.length,
+                totalAulasRealizadas,
+                totalAulasExcluidas,
+                valorTotal,
+                educadores: educadoresRelatorio
             };
-            
-            fimInput.onchange = updateDuracao;
-            
-            document.getElementById('aulaModal').classList.remove('hidden');
-            document.getElementById('aulaModal').classList.add('flex');
         }
 
-        window.editAula = function(id) {
-            const aulas = storage.getAulas();
-            const aula = aulas.find(a => a.id === id);
-            if (!aula) return;
-
-            editingAula = id;
-            document.getElementById('aulaModalTitle').textContent = 'Editar Aula';
-            document.getElementById('aulaDia').value = aula.dia;
-            document.getElementById('aulaInicio').value = aula.inicio;
-            document.getElementById('aulaFim').value = aula.fim;
-            updateAulaEducadorSelect();
-            document.getElementById('aulaEducador').value = aula.educadorId;
+        function exibirRelatorio(relatorio, month, year) {
+            // Atualizar estatísticas
+            const totalEducadoresEl = document.getElementById('totalEducadoresReport');
+            const totalAulasRealizadasEl = document.getElementById('totalAulasRealizadas');
+            const totalAulasExcluidasEl = document.getElementById('totalAulasExcluidas');
+            const valorTotalEl = document.getElementById('valorTotalMes');
+            const tituloEl = document.getElementById('tituloRelatorio');
             
-            // Update duration display for existing aula
-            setTimeout(() => {
-                const inicioInput = document.getElementById('aulaInicio');
-                const fimInput = document.getElementById('aulaFim');
-                
-                function updateDuracao() {
-                    const inicio = inicioInput.value;
-                    const fim = fimInput.value;
-                    
-                    if (inicio && fim) {
-                        const [inicioHora, inicioMin] = inicio.split(':').map(Number);
-                        const [fimHora, fimMin] = fim.split(':').map(Number);
-                        
-                        const inicioMinutos = inicioHora * 60 + inicioMin;
-                        const fimMinutos = fimHora * 60 + fimMin;
-                        const duracaoMinutos = fimMinutos - inicioMinutos;
-                        
-                        if (duracaoMinutos > 0) {
-                            const horas = Math.floor(duracaoMinutos / 60);
-                            const minutos = duracaoMinutos % 60;
-                            let duracaoTexto = '';
-                            
-                            if (horas > 0) duracaoTexto += `${horas}h`;
-                            if (minutos > 0) duracaoTexto += ` ${minutos}min`;
-                            
-                            document.getElementById('duracaoHoras').textContent = duracaoTexto.trim();
-                            document.getElementById('duracaoInfo').classList.remove('hidden');
-                        } else {
-                            document.getElementById('duracaoInfo').classList.add('hidden');
-                        }
-                    } else {
-                        document.getElementById('duracaoInfo').classList.add('hidden');
-                    }
-                }
-                
-                inicioInput.onchange = updateDuracao;
-                fimInput.onchange = updateDuracao;
-                updateDuracao(); // Show duration immediately
-            }, 100);
+            if (totalEducadoresEl) totalEducadoresEl.textContent = relatorio.totalEducadores;
+            if (totalAulasRealizadasEl) totalAulasRealizadasEl.textContent = relatorio.totalAulasRealizadas;
+            if (totalAulasExcluidasEl) totalAulasExcluidasEl.textContent = relatorio.totalAulasExcluidas;
+            if (valorTotalEl) valorTotalEl.textContent = 'R$ ' + relatorio.valorTotal.toFixed(2).replace('.', ',');
+            if (tituloEl) tituloEl.textContent = 'Relatório de ' + meses[month] + '/' + year;
             
-            document.getElementById('aulaModal').classList.remove('hidden');
-            document.getElementById('aulaModal').classList.add('flex');
-        }
-
-        window.saveAula = function(event) {
-            event.preventDefault();
+            // Gerar tabela de educadores
+            const container = document.getElementById('relatorioEducadores');
+            if (!container) return;
             
-            const dia = parseInt(document.getElementById('aulaDia').value);
-            const inicio = document.getElementById('aulaInicio').value;
-            const fim = document.getElementById('aulaFim').value;
-            const educadorId = document.getElementById('aulaEducador').value;
+            let html = '';
             
-            const aulas = storage.getAulas();
-            
-            if (editingAula) {
-                const index = aulas.findIndex(a => a.id === editingAula);
-                if (index !== -1) {
-                    aulas[index] = { ...aulas[index], dia, inicio, fim, educadorId };
-                }
+            if (relatorio.totalAulasRealizadas === 0) {
+                html = '<div class="p-6 text-center text-gray-600">Nenhuma aula realizada neste período.</div>';
             } else {
-                const newAula = {
-                    id: 'aula_' + Date.now(),
-                    dia,
-                    inicio,
-                    fim,
-                    educadorId,
-                    ativo: true,
-                    criado: new Date().toISOString()
-                };
-                aulas.push(newAula);
+                html = '<div class="overflow-x-auto">';
+                html += '<table class="min-w-full divide-y divide-gray-200">';
+                html += '<thead class="bg-gray-50">';
+                html += '<tr>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Educador</th>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas Realizadas</th>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas Excluídas</th>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor/Hora</th>';
+                html += '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Total</th>';
+                html += '</tr>';
+                html += '</thead>';
+                html += '<tbody class="bg-white divide-y divide-gray-200">';
+                
+                Object.values(relatorio.educadores).forEach(edu => {
+                    if (edu.horasRealizadas > 0 || edu.horasExcluidas > 0) {
+                        html += '<tr>';
+                        html += '<td class="px-6 py-4 whitespace-nowrap">';
+                        html += '<div class="text-sm font-medium text-gray-900">' + edu.nome + '</div>';
+                        html += '</td>';
+                        html += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + edu.horasRealizadas + 'h</td>';
+                        html += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + edu.horasExcluidas + 'h</td>';
+                        html += '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">R$ ' + edu.valorHora.toFixed(2).replace('.', ',') + '</td>';
+                        html += '<td class="px-6 py-4 whitespace-nowrap">';
+                        html += '<div class="text-sm font-medium text-gray-900">R$ ' + edu.valorTotal.toFixed(2).replace('.', ',') + '</div>';
+                        html += '</td>';
+                        html += '</tr>';
+                    }
+                });
+                
+                html += '</tbody>';
+                html += '</table>';
+                html += '</div>';
             }
             
-            storage.setAulas(aulas);
-            closeAulaModal();
-            updateAulaList();
-            updateDashboard();
+            container.innerHTML = html;
         }
 
-        window.toggleAula = function(id) {
-            const aulas = storage.getAulas();
-            const index = aulas.findIndex(a => a.id === id);
-            if (index !== -1) {
-                aulas[index].ativo = !aulas[index].ativo;
-                storage.setAulas(aulas);
-                updateAulaList();
-                updateDashboard();
-            }
-        }
-
-        window.deleteAula = function(id) {
-            if (confirm('Tem certeza que deseja excluir esta aula?')) {
-                const aulas = storage.getAulas();
-                const filtered = aulas.filter(a => a.id !== id);
-                storage.setAulas(filtered);
-                updateAulaList();
-                updateDashboard();
-            }
-        }
-
-        window.closeAulaModal = function() {
-            document.getElementById('aulaModal').classList.add('hidden');
-            document.getElementById('aulaModal').classList.remove('flex');
-        }
-
-        // System Settings
-        window.saveSystemSettings = function() {
-            const valorPadrao = parseFloat(document.getElementById('valorPadrao').value);
-            const duracaoPadrao = parseInt(document.getElementById('duracaoPadrao').value);
-            
-            const settings = { valorPadrao, duracaoPadrao };
-            storage.setSettings(settings);
-            
-            alert('Configurações salvas com sucesso!');
-        }
-
-        // Data Management
-        window.exportData = function() {
-            const data = {
-                educadores: storage.getEducadores(),
-                aulas: storage.getAulas(),
-                settings: storage.getSettings(),
+        // Funções de Backup
+        function exportarDados() {
+            const dados = {
+                educadores: state.educadores,
+                gradeBase: state.gradeBase,
+                excecoes: state.excecoes,
                 exportDate: new Date().toISOString()
             };
             
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
+            
             const a = document.createElement('a');
             a.href = url;
-            a.download = `educontrol-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = 'educontrol-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            
+            alert('Backup exportado com sucesso!');
         }
 
-        window.importData = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function importarDados() {
+            const arquivo = document.getElementById('arquivoBackup').files[0];
+            
+            if (!arquivo) {
+                alert('Por favor, selecione um arquivo de backup.');
+                return;
+            }
             
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
+                    const dados = JSON.parse(e.target.result);
                     
-                    if (data.educadores && data.aulas && data.settings) {
-                        storage.setEducadores(data.educadores);
-                        storage.setAulas(data.aulas);
-                        storage.setSettings(data.settings);
-                        
-                        alert('Dados importados com sucesso!');
-                        location.reload();
+                    if (dados.educadores && dados.gradeBase && dados.excecoes !== undefined) {
+                        if (confirm('Tem certeza que deseja importar estes dados? Todos os dados atuais serão substituídos.')) {
+                            state.educadores = dados.educadores || [];
+                            state.gradeBase = dados.gradeBase || [];
+                            state.excecoes = dados.excecoes || {};
+                            
+                            salvarDados();
+                            renderCalendar();
+                            renderEducadores();
+                            renderGradeBase();
+                            updateReports();
+                            preencherSelectEducadores();
+                            
+                            alert('Dados importados com sucesso!');
+                        }
                     } else {
-                        alert('Arquivo de backup inválido!');
+                        alert('Arquivo de backup inválido.');
                     }
                 } catch (error) {
-                    alert('Erro ao importar dados: ' + error.message);
+                    alert('Erro ao ler o arquivo de backup.');
                 }
             };
-            reader.readAsText(file);
+            
+            reader.readAsText(arquivo);
         }
 
-        window.resetSystem = function() {
-            if (confirm('Tem certeza que deseja resetar todo o sistema? Esta ação não pode ser desfeita!')) {
-                localStorage.removeItem('educontrol_educadores');
-                localStorage.removeItem('educontrol_aulas');
-                localStorage.removeItem('educontrol_settings');
-                alert('Sistema resetado com sucesso!');
-                location.reload();
+        // Funções de persistência
+        function salvarDados() {
+            localStorage.setItem('educadores', JSON.stringify(state.educadores));
+            localStorage.setItem('gradeBase', JSON.stringify(state.gradeBase));
+            localStorage.setItem('excecoes', JSON.stringify(state.excecoes));
+        }
+
+        // Fechar modal ao clicar fora
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('modalDia');
+            if (e.target === modal) {
+                fecharModal();
             }
-        }
-
-        // Calendar Functions
-        function updateCalendar() {
-            const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                               'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            
-            document.getElementById('currentMonth').textContent = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
-            
-            generateCalendarGrid();
-        }
-
-        async function generateCalendarGrid() {
-            const grid = document.getElementById('calendarGrid');
-            const year = currentMonth.getFullYear();
-            const month = currentMonth.getMonth();
-            
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-            
-            const feriados = await getFeriados(year);
-            const aulas = storage.getAulas().filter(a => a.ativo);
-            const educadores = storage.getEducadores();
-            
-            // Header
-            grid.innerHTML = '';
-            const dayHeaders = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            dayHeaders.forEach(day => {
-                const div = document.createElement('div');
-                div.className = 'p-2 text-center font-semibold text-gray-600 bg-gray-100 rounded-lg';
-                div.textContent = day;
-                grid.appendChild(div);
-            });
-            
-            // Calendar days
-            for (let i = 0; i < 42; i++) {
-                const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + i);
-                
-                const div = document.createElement('div');
-                div.className = 'min-h-24 p-2 border border-gray-200 rounded-lg';
-                
-                const isCurrentMonth = currentDate.getMonth() === month;
-                const isToday = currentDate.toDateString() === new Date().toDateString();
-                const isFeriado = feriados.some(f => f.toDateString() === currentDate.toDateString());
-                const dayOfWeek = currentDate.getDay();
-                
-                if (!isCurrentMonth) {
-                    div.classList.add('bg-gray-50', 'text-gray-400');
-                } else if (isToday) {
-                    div.classList.add('bg-blue-50', 'border-blue-300');
-                } else if (isFeriado) {
-                    div.classList.add('bg-red-50', 'border-red-300');
-                }
-                
-                // Day number
-                const dayNumber = document.createElement('div');
-                dayNumber.className = `text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-gray-700'}`;
-                dayNumber.textContent = currentDate.getDate();
-                div.appendChild(dayNumber);
-                
-                // Classes for this day
-                if (isCurrentMonth && dayOfWeek !== 0 && !isFeriado) {
-                    const dayClasses = aulas.filter(aula => aula.dia === dayOfWeek);
-                    
-                    dayClasses.forEach(aula => {
-                        const educador = educadores.find(e => e.id === aula.educadorId);
-                        if (educador) {
-                            const classDiv = document.createElement('div');
-                            classDiv.className = 'text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded mt-1 truncate';
-                            classDiv.textContent = `${formatTime(aula.inicio)} ${educador.nome}`;
-                            div.appendChild(classDiv);
-                        }
-                    });
-                }
-                
-                grid.appendChild(div);
-            }
-        }
-
-        window.previousMonth = function() {
-            currentMonth.setMonth(currentMonth.getMonth() - 1);
-            updateCalendar();
-        }
-
-        window.nextMonth = function() {
-            currentMonth.setMonth(currentMonth.getMonth() + 1);
-            updateCalendar();
-        }
-
-        // Reports Functions
-        function populateReportFilters() {
-            const reportMonth = document.getElementById('reportMonth');
-            if (reportMonth.children.length === 0) {
-                populateMonthSelector(reportMonth);
-            }
-        }
-
-        async function generateReport() {
-            const reportMonth = document.getElementById('reportMonth');
-            const [year, monthStr] = reportMonth.value.split('-');
-            const month = parseInt(monthStr) - 1;
-            
-            const monthlyData = await calculateMonthlyClasses(month, parseInt(year));
-            const reportContent = document.getElementById('reportContent');
-            
-            let totalGeral = 0;
-            const reportItems = Object.values(monthlyData).filter(data => data.horas > 0);
-            
-            reportContent.innerHTML = reportItems.map(data => {
-                const total = data.horas * data.valor;
-                totalGeral += total;
-                
-                return `
-                    <div class="card bg-white rounded-xl p-6 shadow-md border border-gray-100">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-user text-blue-600 text-lg"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-800">${data.nome}</h3>
-                                    <p class="text-sm text-gray-500">${formatCurrency(data.valor)}/hora</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-2xl font-bold text-green-600">${formatCurrency(total)}</p>
-                                <p class="text-sm text-gray-500">${data.aulas} aulas • ${data.horas.toFixed(1)} horas</p>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
-                            <div class="text-center">
-                                <p class="text-sm text-gray-500">Aulas</p>
-                                <p class="text-lg font-semibold text-gray-800">${data.aulas}</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-sm text-gray-500">Horas</p>
-                                <p class="text-lg font-semibold text-gray-800">${data.horas.toFixed(1)}h</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-sm text-gray-500">Valor/Hora</p>
-                                <p class="text-lg font-semibold text-gray-800">${formatCurrency(data.valor)}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Add total summary
-            if (reportItems.length > 0) {
-                const totalDiv = document.createElement('div');
-                totalDiv.className = 'card bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl p-6 shadow-md';
-                totalDiv.innerHTML = `
-                    <div class="text-center">
-                        <h3 class="text-xl font-semibold mb-2">Total Geral</h3>
-                        <p class="text-3xl font-bold">${formatCurrency(totalGeral)}</p>
-                        <p class="text-green-100 mt-2">${reportItems.length} educador(es) • ${reportItems.reduce((sum, d) => sum + d.aulas, 0)} aulas</p>
-                    </div>
-                `;
-                reportContent.appendChild(totalDiv);
-            }
-        }
-
-        window.exportReport = function() {
-            const reportMonth = document.getElementById('reportMonth');
-            const monthName = reportMonth.options[reportMonth.selectedIndex].text;
-            
-            // Simple export functionality - you can enhance this
-            alert(`Funcionalidade de exportação do relatório de ${monthName} será implementada em breve!`);
-        }
-
-        // Mobile menu
-        window.toggleMobileMenu = function() {
-            const mobileMenu = document.getElementById('mobileMenu');
-            mobileMenu.classList.toggle('hidden');
-        }
-
-        // Ocorrências Functions
-        window.showOcorrenciaTab = function(tabName) {
-            document.querySelectorAll('.ocorrencia-tab').forEach(tab => {
-                tab.classList.remove('text-purple-600', 'border-purple-500');
-                tab.classList.add('text-gray-500', 'border-transparent', 'hover:text-gray-700', 'hover:border-gray-300');
-            });
-            document.querySelectorAll('.ocorrencia-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-
-            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
-            activeTab.classList.remove('text-gray-500', 'border-transparent', 'hover:text-gray-700', 'hover:border-gray-300');
-            activeTab.classList.add('text-purple-600', 'border-purple-500');
-
-            document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.remove('hidden');
-
-            // Load data based on active tab
-            switch(tabName) {
-                case 'faltas':
-                    loadFaltas();
-                    break;
-                case 'licencas':
-                    loadLicencas();
-                    break;
-                case 'impedimentos':
-                    loadImpedimentos();
-                    break;
-                case 'substitutos':
-                    loadSubstitutos();
-                    break;
-            }
-        }
-
-        // Falta Functions
-        window.openFaltaModal = function() {
-            const educadores = storage.getEducadores().filter(e => e.ativo);
-            const substitutos = storage.getSubstitutos().filter(s => s.ativo);
-            
-            const educadorSelect = document.getElementById('faltaEducador');
-            const substitutoSelect = document.getElementById('faltaSubstituto');
-            
-            educadorSelect.innerHTML = '<option value="">Selecione...</option>';
-            substitutoSelect.innerHTML = '<option value="">Selecione...</option>';
-            
-            educadores.forEach(educador => {
-                educadorSelect.innerHTML += `<option value="${educador.id}">${educador.nome}</option>`;
-            });
-            
-            substitutos.forEach(substituto => {
-                substitutoSelect.innerHTML += `<option value="${substituto.id}">${substituto.nome}</option>`;
-            });
-
-            document.getElementById('faltaData').value = new Date().toISOString().split('T')[0];
-            document.getElementById('faltaModal').classList.remove('hidden');
-        }
-
-        window.closeFaltaModal = function() {
-            document.getElementById('faltaModal').classList.add('hidden');
-            document.getElementById('faltaForm').reset();
-            document.getElementById('substitutoDiv').classList.add('hidden');
-        }
-
-        // Licença Functions
-        window.openLicencaModal = function() {
-            const educadores = storage.getEducadores().filter(e => e.ativo);
-            const educadorSelect = document.getElementById('licencaEducador');
-            
-            educadorSelect.innerHTML = '<option value="">Selecione...</option>';
-            educadores.forEach(educador => {
-                educadorSelect.innerHTML += `<option value="${educador.id}">${educador.nome}</option>`;
-            });
-
-            document.getElementById('licencaModal').classList.remove('hidden');
-        }
-
-        window.closeLicencaModal = function() {
-            document.getElementById('licencaModal').classList.add('hidden');
-            document.getElementById('licencaForm').reset();
-        }
-
-        // Impedimento Functions
-        window.openImpedimentoModal = function() {
-            document.getElementById('impedimentoModal').classList.remove('hidden');
-        }
-
-        window.closeImpedimentoModal = function() {
-            document.getElementById('impedimentoModal').classList.add('hidden');
-            document.getElementById('impedimentoForm').reset();
-        }
-
-        // Substituto Functions
-        window.openSubstitutoModal = function() {
-            document.getElementById('substitutoModal').classList.remove('hidden');
-        }
-
-        window.closeSubstitutoModal = function() {
-            document.getElementById('substitutoModal').classList.add('hidden');
-            document.getElementById('substitutoForm').reset();
-        }
-
-        function loadFaltas() {
-            const ocorrencias = storage.getOcorrencias();
-            const educadores = storage.getEducadores();
-            const substitutos = storage.getSubstitutos();
-            const container = document.getElementById('faltasList');
-            
-            const faltas = ocorrencias.filter(o => o.tipo === 'falta' || o.tipo === 'substituicao');
-            
-            if (faltas.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma ocorrência registrada</p>';
-                return;
-            }
-
-            container.innerHTML = faltas.map(falta => {
-                const educador = educadores.find(e => e.id === falta.educadorId);
-                const substituto = falta.substitutoId ? substitutos.find(s => s.id === falta.substitutoId) : null;
-                
-                return `
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${falta.tipo === 'falta' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">
-                                        <i class="fas ${falta.tipo === 'falta' ? 'fa-user-times' : 'fa-exchange-alt'} mr-1"></i>
-                                        ${falta.tipo === 'falta' ? 'Falta' : 'Substituição'}
-                                    </span>
-                                    <span class="text-sm text-gray-600">${new Date(falta.data).toLocaleDateString('pt-BR')}</span>
-                                </div>
-                                <p class="font-medium text-gray-800">${educador?.nome || 'Educador não encontrado'}</p>
-                                ${substituto ? `<p class="text-sm text-gray-600">Substituto: ${substituto.nome}</p>` : ''}
-                                ${falta.motivo ? `<p class="text-sm text-gray-600 mt-1">${falta.motivo}</p>` : ''}
-                            </div>
-                            <button onclick="removeOcorrencia('${falta.id}')" class="text-red-600 hover:text-red-800">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function loadLicencas() {
-            const licencas = storage.getLicencas();
-            const educadores = storage.getEducadores();
-            const container = document.getElementById('licencasList');
-            
-            if (licencas.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma licença registrada</p>';
-                return;
-            }
-
-            container.innerHTML = licencas.map(licenca => {
-                const educador = educadores.find(e => e.id === licenca.educadorId);
-                const isActive = new Date(licenca.inicio) <= new Date() && new Date(licenca.fim) >= new Date();
-                
-                return `
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}">
-                                        <i class="fas fa-calendar-times mr-1"></i>
-                                        ${licenca.tipo.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                    </span>
-                                    ${isActive ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Ativa</span>' : ''}
-                                </div>
-                                <p class="font-medium text-gray-800">${educador?.nome || 'Educador não encontrado'}</p>
-                                <p class="text-sm text-gray-600">${new Date(licenca.inicio).toLocaleDateString('pt-BR')} até ${new Date(licenca.fim).toLocaleDateString('pt-BR')}</p>
-                                ${licenca.observacoes ? `<p class="text-sm text-gray-600 mt-1">${licenca.observacoes}</p>` : ''}
-                            </div>
-                            <button onclick="removeLicenca('${licenca.id}')" class="text-red-600 hover:text-red-800">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function loadImpedimentos() {
-            const impedimentos = storage.getImpedimentos();
-            const container = document.getElementById('impedimentosList');
-            
-            if (impedimentos.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum impedimento registrado</p>';
-                return;
-            }
-
-            container.innerHTML = impedimentos.map(impedimento => {
-                const isActive = new Date(impedimento.inicio) <= new Date() && new Date(impedimento.fim) >= new Date();
-                
-                return `
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
-                                        <i class="fas fa-ban mr-1"></i>
-                                        ${impedimento.tipo.replace(/\b\w/g, l => l.toUpperCase())}
-                                    </span>
-                                    ${isActive ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Ativo</span>' : ''}
-                                </div>
-                                <p class="font-medium text-gray-800">${impedimento.descricao}</p>
-                                <p class="text-sm text-gray-600">${new Date(impedimento.inicio).toLocaleDateString('pt-BR')} até ${new Date(impedimento.fim).toLocaleDateString('pt-BR')}</p>
-                                ${impedimento.observacoes ? `<p class="text-sm text-gray-600 mt-1">${impedimento.observacoes}</p>` : ''}
-                            </div>
-                            <button onclick="removeImpedimento('${impedimento.id}')" class="text-red-600 hover:text-red-800">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function loadSubstitutos() {
-            const substitutos = storage.getSubstitutos();
-            const container = document.getElementById('substitutosList');
-            
-            if (substitutos.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhum substituto cadastrado</p>';
-                return;
-            }
-
-            container.innerHTML = substitutos.map(substituto => {
-                return `
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <p class="font-medium text-gray-800">${substituto.nome}</p>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${substituto.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                                        ${substituto.ativo ? 'Disponível' : 'Indisponível'}
-                                    </span>
-                                </div>
-                                ${substituto.telefone ? `<p class="text-sm text-gray-600"><i class="fas fa-phone mr-1"></i>${substituto.telefone}</p>` : ''}
-                                ${substituto.email ? `<p class="text-sm text-gray-600"><i class="fas fa-envelope mr-1"></i>${substituto.email}</p>` : ''}
-                                ${substituto.especialidades ? `<p class="text-sm text-gray-600 mt-1"><strong>Especialidades:</strong> ${substituto.especialidades}</p>` : ''}
-                                ${substituto.valor ? `<p class="text-sm text-gray-600"><strong>Valor/h:</strong> ${formatCurrency(substituto.valor)}</p>` : ''}
-                            </div>
-                            <div class="flex space-x-2">
-                                <button onclick="editSubstituto('${substituto.id}')" class="text-blue-600 hover:text-blue-800">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="removeSubstituto('${substituto.id}')" class="text-red-600 hover:text-red-800">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Remove functions
-        window.removeOcorrencia = function(id) {
-            if (confirm('Deseja realmente remover esta ocorrência?')) {
-                const ocorrencias = storage.getOcorrencias().filter(o => o.id !== id);
-                storage.setOcorrencias(ocorrencias);
-                loadFaltas();
-                showAlert('Ocorrência removida com sucesso!', 'success');
-            }
-        }
-
-        window.removeLicenca = function(id) {
-            if (confirm('Deseja realmente remover esta licença?')) {
-                const licencas = storage.getLicencas().filter(l => l.id !== id);
-                storage.setLicencas(licencas);
-                loadLicencas();
-                showAlert('Licença removida com sucesso!', 'success');
-            }
-        }
-
-        window.removeImpedimento = function(id) {
-            if (confirm('Deseja realmente remover este impedimento?')) {
-                const impedimentos = storage.getImpedimentos().filter(i => i.id !== id);
-                storage.setImpedimentos(impedimentos);
-                loadImpedimentos();
-                showAlert('Impedimento removido com sucesso!', 'success');
-            }
-        }
-
-        window.removeSubstituto = function(id) {
-            if (confirm('Deseja realmente remover este substituto?')) {
-                const substitutos = storage.getSubstitutos().filter(s => s.id !== id);
-                storage.setSubstitutos(substitutos);
-                loadSubstitutos();
-                showAlert('Substituto removido com sucesso!', 'success');
-            }
-        }
-
-        window.editSubstituto = function(id) {
-            const substitutos = storage.getSubstitutos();
-            const substituto = substitutos.find(s => s.id === id);
-            if (!substituto) return;
-
-            document.getElementById('substitutoNome').value = substituto.nome;
-            document.getElementById('substitutoTelefone').value = substituto.telefone || '';
-            document.getElementById('substitutoEmail').value = substituto.email || '';
-            document.getElementById('substitutoEspecialidades').value = substituto.especialidades || '';
-            document.getElementById('substitutoValor').value = substituto.valor || '';
-            document.getElementById('substitutoAtivo').checked = substituto.ativo;
-
-            // Modify form for editing
-            const form = document.getElementById('substitutoForm');
-            form.dataset.editingId = id;
-            document.querySelector('#substitutoModal h3').textContent = 'Editar Substituto';
-
-            openSubstitutoModal();
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            showDashboard();
-
-            // Form Handlers
-            document.getElementById('faltaForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const ocorrencia = {
-                    id: Date.now().toString(),
-                    data: document.getElementById('faltaData').value,
-                    educadorId: document.getElementById('faltaEducador').value,
-                    tipo: document.getElementById('faltaTipo').value,
-                    substitutoId: document.getElementById('faltaSubstituto').value || null,
-                    motivo: document.getElementById('faltaMotivo').value,
-                    created: new Date().toISOString()
-                };
-
-                const ocorrencias = storage.getOcorrencias();
-                ocorrencias.push(ocorrencia);
-                storage.setOcorrencias(ocorrencias);
-
-                closeFaltaModal();
-                loadFaltas();
-                showAlert('Ocorrência registrada com sucesso!', 'success');
-            });
-
-            document.getElementById('licencaForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const licenca = {
-                    id: Date.now().toString(),
-                    educadorId: document.getElementById('licencaEducador').value,
-                    tipo: document.getElementById('licencaTipo').value,
-                    inicio: document.getElementById('licencaInicio').value,
-                    fim: document.getElementById('licencaFim').value,
-                    observacoes: document.getElementById('licencaObservacoes').value,
-                    created: new Date().toISOString()
-                };
-
-                const licencas = storage.getLicencas();
-                licencas.push(licenca);
-                storage.setLicencas(licencas);
-
-                closeLicencaModal();
-                loadLicencas();
-                showAlert('Licença registrada com sucesso!', 'success');
-            });
-
-            document.getElementById('impedimentoForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const impedimento = {
-                    id: Date.now().toString(),
-                    tipo: document.getElementById('impedimentoTipo').value,
-                    inicio: document.getElementById('impedimentoInicio').value,
-                    fim: document.getElementById('impedimentoFim').value,
-                    descricao: document.getElementById('impedimentoDescricao').value,
-                    observacoes: document.getElementById('impedimentoObservacoes').value,
-                    created: new Date().toISOString()
-                };
-
-                const impedimentos = storage.getImpedimentos();
-                impedimentos.push(impedimento);
-                storage.setImpedimentos(impedimentos);
-
-                closeImpedimentoModal();
-                loadImpedimentos();
-                showAlert('Impedimento registrado com sucesso!', 'success');
-            });
-
-            document.getElementById('substitutoForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const editingId = this.dataset.editingId;
-                const substitutos = storage.getSubstitutos();
-                
-                if (editingId) {
-                    // Edit existing
-                    const index = substitutos.findIndex(s => s.id === editingId);
-                    if (index !== -1) {
-                        substitutos[index] = {
-                            ...substitutos[index],
-                            nome: document.getElementById('substitutoNome').value,
-                            telefone: document.getElementById('substitutoTelefone').value,
-                            email: document.getElementById('substitutoEmail').value,
-                            especialidades: document.getElementById('substitutoEspecialidades').value,
-                            valor: parseFloat(document.getElementById('substitutoValor').value) || 0,
-                            ativo: document.getElementById('substitutoAtivo').checked,
-                            updated: new Date().toISOString()
-                        };
-                    }
-                    delete this.dataset.editingId;
-                    document.querySelector('#substitutoModal h3').textContent = 'Cadastrar Substituto';
-                } else {
-                    // Add new
-                    const substituto = {
-                        id: Date.now().toString(),
-                        nome: document.getElementById('substitutoNome').value,
-                        telefone: document.getElementById('substitutoTelefone').value,
-                        email: document.getElementById('substitutoEmail').value,
-                        especialidades: document.getElementById('substitutoEspecialidades').value,
-                        valor: parseFloat(document.getElementById('substitutoValor').value) || 0,
-                        ativo: document.getElementById('substitutoAtivo').checked,
-                        created: new Date().toISOString()
-                    };
-                    substitutos.push(substituto);
-                }
-
-                storage.setSubstitutos(substitutos);
-                closeSubstitutoModal();
-                loadSubstitutos();
-                showAlert('Substituto salvo com sucesso!', 'success');
-            });
-
-            // Event handlers para mostrar/ocultar campo substituto
-            document.getElementById('faltaTipo').addEventListener('change', function() {
-                const substitutoDiv = document.getElementById('substitutoDiv');
-                if (this.value === 'substituicao') {
-                    substitutoDiv.classList.remove('hidden');
-                    document.getElementById('faltaSubstituto').required = true;
-                } else {
-                    substitutoDiv.classList.add('hidden');
-                    document.getElementById('faltaSubstituto').required = false;
-                }
-            });
         });
-
-        // Make functions globally available
-        window.updateDashboard = updateDashboard;
-        window.generateReport = generateReport;
     </script>
 </body>
 </html>
