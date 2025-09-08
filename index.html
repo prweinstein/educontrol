@@ -3,1006 +3,1299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduControl - Sistema de Gestão de Educadores</title>
+    <title>EduFat - Sistema de Gestão Educacional</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .card { transition: all 0.3s ease; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        
-        .calendar-day {
-            min-height: 80px;
-            cursor: pointer;
-            border: 1px solid #e5e7eb;
-            transition: all 0.2s ease;
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         }
-        @media (min-width: 768px) {
-            .calendar-day {
-                min-height: 120px;
-            }
-        }
-        .calendar-day:hover {
-            background-color: #f9fafb;
-            border-color: #d1d5db;
-        }
-        .calendar-day.has-classes {
-            background-color: #dcfce7;
-            border-color: #16a34a;
-        }
-        .calendar-day.has-exceptions {
-            background-color: #fef3c7;
-            border-color: #f59e0b;
-        }
-        .calendar-day.has-deleted {
-            background-color: #fee2e2;
-            border-color: #dc2626;
-        }
-        
-        .aula-item {
-            font-size: 0.65rem;
-            padding: 1px 3px;
-            margin: 1px 0;
-            border-radius: 2px;
-            background-color: #3b82f6;
-            color: white;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 1.2;
-        }
-        @media (min-width: 768px) {
-            .aula-item {
-                font-size: 0.75rem;
-                padding: 2px 4px;
-                border-radius: 3px;
-                line-height: 1.4;
-            }
-        }
-        .aula-item.exception {
-            background-color: #f59e0b;
-        }
-        .aula-item.deleted {
-            background-color: #dc2626;
-            text-decoration: line-through;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-        .modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .view { display: none; }
-        .view.active { display: block; }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <!-- Header -->
-    <header class="gradient-bg text-white shadow-lg">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-graduation-cap text-3xl"></i>
-                    <h1 class="text-2xl font-bold">EduControl</h1>
-                </div>
-                
-                <!-- Menu Desktop -->
-                <nav class="hidden md:flex space-x-6">
-                    <button onclick="showCalendar()" class="flex items-center px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Calendário
-                    </button>
-                    <button onclick="showEducadores()" class="flex items-center px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
-                        <i class="fas fa-users mr-2"></i>Educadores
-                    </button>
-                    <button onclick="showReports()" class="flex items-center px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
-                        <i class="fas fa-chart-bar mr-2"></i>Relatórios
-                    </button>
-                    <button onclick="showBackup()" class="flex items-center px-3 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
-                        <i class="fas fa-download mr-2"></i>Backup
-                    </button>
-                </nav>
-                
-                <!-- Botão Menu Mobile -->
-                <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg hover:bg-white hover:bg-opacity-20">
-                    <i class="fas fa-bars text-xl"></i>
-                </button>
-            </div>
-        </div>
-    </header>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Calendar, User, BookOpen, BarChart3, Settings, Download, Upload, RefreshCw, Plus, Edit, Trash2, Save, X, Check, Menu } = lucide;
 
-    <!-- Menu Mobile -->
-    <div id="mobileMenu" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-        <div class="fixed top-0 right-0 w-80 h-full bg-white shadow-lg p-6">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-gray-800">Menu</h2>
-                <button onclick="closeMobileMenu()" class="p-2 text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="showCalendar(); closeMobileMenu()" class="flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 py-3 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-calendar-alt mr-2"></i>Calendário
-                </button>
-                <button onclick="showEducadores(); closeMobileMenu()" class="flex items-center justify-center bg-purple-50 hover:bg-purple-100 text-purple-700 py-3 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-users mr-2"></i>Educadores
-                </button>
-                <button onclick="showReports(); closeMobileMenu()" class="flex items-center justify-center bg-yellow-50 hover:bg-yellow-100 text-yellow-700 py-3 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-chart-bar mr-2"></i>Relatórios
-                </button>
-            </div>
-            <div class="mt-4">
-                <button onclick="showBackup(); closeMobileMenu()" class="w-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-700 py-3 px-4 rounded-lg transition-colors">
-                    <i class="fas fa-download mr-2"></i>Backup
-                </button>
-            </div>
-        </div>
-    </div>
+        const EduFat = () => {
+          const [currentView, setCurrentView] = useState('dashboard');
+          const [educadores, setEducadores] = useState([]);
+          const [gradeAulas, setGradeAulas] = useState([]);
+          const [calendario, setCalendario] = useState({});
+          const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+          const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-    <main class="container mx-auto px-4 md:px-6 py-4 md:py-8">
-        <!-- CALENDÁRIO MENSAL -->
-        <div id="calendario" class="view active">
-            <!-- Cabeçalho Centralizado -->
-            <div class="text-center mb-6">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Calendário de Aulas</h2>
-                <p class="text-sm md:text-base text-gray-600">Visualize e gerencie as aulas do mês</p>
-            </div>
-            
-            <!-- Navegação do Mês -->
-            <div class="flex items-center justify-center mb-6 space-x-6">
-                <button onclick="previousMonth()" class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
-                    <i class="fas fa-chevron-left text-lg"></i>
-                </button>
-                <h3 id="currentMonth" class="text-lg md:text-xl font-semibold text-gray-800 min-w-32 text-center"></h3>
-                <button onclick="nextMonth()" class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
-                    <i class="fas fa-chevron-right text-lg"></i>
-                </button>
-            </div>
+          // Estados para formulários
+          const [educadorForm, setEducadorForm] = useState({ nome: '', valorHora: '' });
+          const [aulaForm, setAulaForm] = useState({ 
+            diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' 
+          });
+          const [editingEducador, setEditingEducador] = useState(null);
+          const [editingAula, setEditingAula] = useState(null);
+          const [editingAulaCalendario, setEditingAulaCalendario] = useState(null);
+          const [manutencaoForm, setManutencaoForm] = useState({ 
+            educadorId: '', horaInicial: '', horaFinal: ''
+          });
+          const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-            <!-- Legenda -->
-            <div class="mb-4 bg-gray-50 rounded-lg p-3">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs md:text-sm">
-                    <div class="flex items-center justify-center sm:justify-start">
-                        <div class="w-3 h-3 bg-green-200 border border-green-500 rounded mr-2"></div>
-                        <span class="text-gray-700">Aulas Normais</span>
-                    </div>
-                    <div class="flex items-center justify-center sm:justify-start">
-                        <div class="w-3 h-3 bg-yellow-200 border border-yellow-500 rounded mr-2"></div>
-                        <span class="text-gray-700">Com Exceções</span>
-                    </div>
-                    <div class="flex items-center justify-center sm:justify-start">
-                        <div class="w-3 h-3 bg-red-200 border border-red-500 rounded mr-2"></div>
-                        <span class="text-gray-700">Aulas Excluídas</span>
-                    </div>
-                </div>
-            </div>
+          // Feriados nacionais brasileiros
+          const feriados = {
+            2024: [
+              { data: '2024-01-01', nome: 'Confraternização Universal' },
+              { data: '2024-02-12', nome: 'Carnaval' },
+              { data: '2024-02-13', nome: 'Carnaval' },
+              { data: '2024-03-29', nome: 'Sexta-feira Santa' },
+              { data: '2024-04-21', nome: 'Tiradentes' },
+              { data: '2024-05-01', nome: 'Dia do Trabalho' },
+              { data: '2024-05-30', nome: 'Corpus Christi' },
+              { data: '2024-09-07', nome: 'Independência do Brasil' },
+              { data: '2024-10-12', nome: 'Nossa Senhora Aparecida' },
+              { data: '2024-11-02', nome: 'Finados' },
+              { data: '2024-11-15', nome: 'Proclamação da República' },
+              { data: '2024-12-25', nome: 'Natal' },
+              // Feriados RJ
+              { data: '2024-04-23', nome: 'São Jorge (RJ)' },
+              { data: '2024-10-17', nome: 'Dia da Amazônia (RJ)' },
+              { data: '2024-11-20', nome: 'Consciência Negra (RJ)' }
+            ],
+            2025: [
+              { data: '2025-01-01', nome: 'Confraternização Universal' },
+              { data: '2025-03-03', nome: 'Carnaval' },
+              { data: '2025-03-04', nome: 'Carnaval' },
+              { data: '2025-04-18', nome: 'Sexta-feira Santa' },
+              { data: '2025-04-21', nome: 'Tiradentes' },
+              { data: '2025-05-01', nome: 'Dia do Trabalho' },
+              { data: '2025-06-19', nome: 'Corpus Christi' },
+              { data: '2025-09-07', nome: 'Independência do Brasil' },
+              { data: '2025-10-12', nome: 'Nossa Senhora Aparecida' },
+              { data: '2025-11-02', nome: 'Finados' },
+              { data: '2025-11-15', nome: 'Proclamação da República' },
+              { data: '2025-12-25', nome: 'Natal' },
+              // Feriados RJ
+              { data: '2025-04-23', nome: 'São Jorge (RJ)' },
+              { data: '2025-10-17', nome: 'Dia da Amazônia (RJ)' },
+              { data: '2025-11-20', nome: 'Consciência Negra (RJ)' }
+            ]
+          };
 
-            <!-- Calendário (Segunda a Sábado) -->
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <!-- Cabeçalho dos dias da semana -->
-                <div class="grid grid-cols-6 bg-gray-100">
-                    <div class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-gray-700">Seg</div>
-                    <div class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-gray-700">Ter</div>
-                    <div class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-gray-700">Qua</div>
-                    <div class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-gray-700">Qui</div>
-                    <div class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-gray-700">Sex</div>
-                    <div class="p-2 md:p-4 text-center text-sm md:text-base font-semibold text-gray-700">Sáb</div>
-                </div>
-                <!-- Dias do mês -->
-                <div id="calendarGrid" class="grid grid-cols-6">
-                    <!-- Será preenchido pelo JavaScript -->
-                </div>
-            </div>
-        </div>
+          const diasSemana = [
+            { id: 1, nome: 'Segunda-feira' },
+            { id: 2, nome: 'Terça-feira' },
+            { id: 3, nome: 'Quarta-feira' },
+            { id: 4, nome: 'Quinta-feira' },
+            { id: 5, nome: 'Sexta-feira' },
+            { id: 6, nome: 'Sábado' }
+          ];
 
-        <!-- EDUCADORES -->
-        <div id="educadores" class="view">
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">Gestão de Educadores</h2>
-                <p class="text-gray-600">Adicione e gerencie o cadastro dos educadores</p>
-            </div>
+          const meses = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+          ];
 
-            <!-- Adicionar Educador -->
-            <div class="bg-white rounded-xl p-6 shadow-lg mb-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-user-plus text-blue-600 mr-2"></i>Adicionar Educador
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
-                        <input type="text" id="nomeEducador" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Digite o nome do educador">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Especialidade</label>
-                        <input type="text" id="especialidadeEducador" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Ex: Matemática, Física...">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Valor/Hora (R$)</label>
-                        <input type="number" id="valorHora" min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="0.00">
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <button onclick="adicionarEducador()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">
-                        <i class="fas fa-plus mr-2"></i>Adicionar Educador
-                    </button>
-                </div>
-            </div>
-
-            <!-- Lista de Educadores -->
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gray-50 px-6 py-4 border-b">
-                    <h3 class="text-lg font-semibold text-gray-800">Educadores Cadastrados</h3>
-                </div>
-                <div class="divide-y divide-gray-200" id="listaEducadores">
-                    <!-- Será preenchido pelo JavaScript -->
-                </div>
-            </div>
-        </div>
-
-        <!-- RELATÓRIOS -->
-        <div id="relatorios" class="view">
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">Relatórios Mensais</h2>
-                <p class="text-gray-600">Visualize pagamentos e estatísticas por mês</p>
-            </div>
-
-            <!-- Seletor de Mês -->
-            <div class="bg-white rounded-xl p-6 shadow-lg mb-6">
-                <div class="space-y-4">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Selecionar Mês/Ano:</label>
-                        <div class="flex gap-3">
-                            <select id="reportMonth" class="border border-gray-300 rounded-lg px-3 py-2">
-                                <!-- Será preenchido pelo JavaScript -->
-                            </select>
-                            <select id="reportYear" class="border border-gray-300 rounded-lg px-3 py-2">
-                                <!-- Será preenchido pelo JavaScript -->
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex justify-center pt-2 border-t border-gray-200">
-                        <button onclick="gerarRelatorio()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg text-sm transition-colors">
-                            <i class="fas fa-sync-alt mr-2"></i>Gerar Relatório
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Estatísticas do Mês -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div class="card bg-white rounded-xl p-6 shadow-md">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Total de Educadores</p>
-                            <p id="totalEducadoresReport" class="text-2xl font-bold text-gray-800">0</p>
-                        </div>
-                        <i class="fas fa-users text-blue-600 text-2xl"></i>
-                    </div>
-                </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Aulas Realizadas</p>
-                            <p id="totalAulasRealizadas" class="text-2xl font-bold text-gray-800">0</p>
-                        </div>
-                        <i class="fas fa-chalkboard-teacher text-green-600 text-2xl"></i>
-                    </div>
-                </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Aulas Excluídas</p>
-                            <p id="totalAulasExcluidas" class="text-2xl font-bold text-gray-800">0</p>
-                        </div>
-                        <i class="fas fa-times-circle text-red-600 text-2xl"></i>
-                    </div>
-                </div>
-
-                <div class="card bg-white rounded-xl p-6 shadow-md">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 font-medium">Total a Pagar</p>
-                            <p id="totalPagamento" class="text-2xl font-bold text-gray-800">R$ 0,00</p>
-                        </div>
-                        <i class="fas fa-dollar-sign text-green-600 text-2xl"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Relatório Detalhado -->
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gray-50 px-6 py-4 border-b">
-                    <h3 class="text-lg font-semibold text-gray-800">Relatório Detalhado por Educador</h3>
-                </div>
-                <div id="relatorioDetalhado">
-                    <!-- Será preenchido pelo JavaScript -->
-                </div>
-            </div>
-        </div>
-
-        <!-- BACKUP -->
-        <div id="backup" class="view">
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800">Backup de Dados</h2>
-                <p class="text-gray-600">Faça backup e restaure os dados do sistema</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Fazer Backup -->
-                <div class="bg-white rounded-xl p-6 shadow-lg">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-download text-green-600 mr-2"></i>Fazer Backup
-                    </h3>
-                    <p class="text-gray-600 mb-4">Baixe um arquivo com todos os dados do sistema (educadores, aulas e configurações)</p>
-                    <button onclick="fazerBackup()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full">
-                        <i class="fas fa-download mr-2"></i>Baixar Backup
-                    </button>
-                </div>
-
-                <!-- Restaurar Backup -->
-                <div class="bg-white rounded-xl p-6 shadow-lg">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-upload text-blue-600 mr-2"></i>Restaurar Backup
-                    </h3>
-                    <p class="text-gray-600 mb-4">Carregue um arquivo de backup para restaurar os dados</p>
-                    <input type="file" id="backupFile" accept=".json" class="w-full border border-gray-300 rounded-lg p-3 mb-4">
-                    <button onclick="restaurarBackup()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg w-full">
-                        <i class="fas fa-upload mr-2"></i>Restaurar Backup
-                    </button>
-                </div>
-            </div>
-
-            <!-- Informações do Sistema -->
-            <div class="bg-white rounded-xl p-6 shadow-lg mt-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-info-circle text-gray-600 mr-2"></i>Informações do Sistema
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                        <span class="text-gray-500">Último Backup:</span>
-                        <p id="ultimoBackup" class="font-medium">Nunca</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Total de Educadores:</span>
-                        <p id="totalEducadoresInfo" class="font-medium">0</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Tamanho dos Dados:</span>
-                        <p id="tamanhoDados" class="font-medium">0 KB</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal de Detalhes do Dia -->
-    <div id="modalDia" class="modal">
-        <div class="bg-white mx-2 md:mx-4 rounded-xl shadow-2xl w-full max-w-2xl">
-            <div class="flex items-center justify-between p-4 md:p-6 border-b">
-                <h3 id="modalTitle" class="text-lg md:text-2xl font-bold text-gray-800"></h3>
-                <button onclick="fecharModal()" class="text-gray-500 hover:text-gray-700 text-xl md:text-2xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-6">
-                <div id="aulasLista" class="space-y-3 mb-6">
-                    <!-- Será preenchido dinamicamente -->
-                </div>
-                <div class="flex flex-col md:flex-row gap-3 justify-end">
-                    <button onclick="adicionarAula()" class="bg-green-600 hover:bg-green-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm md:text-base">
-                        <i class="fas fa-plus mr-2"></i>Adicionar Aula
-                    </button>
-                    <button onclick="fecharModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm md:text-base">
-                        Fechar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Adicionar/Editar Aula -->
-    <div id="modalAula" class="modal">
-        <div class="bg-white mx-2 md:mx-4 rounded-xl shadow-2xl w-full max-w-lg">
-            <div class="flex items-center justify-between p-4 md:p-6 border-b">
-                <h3 id="modalAulaTitle" class="text-lg md:text-xl font-bold text-gray-800">Adicionar Aula</h3>
-                <button onclick="fecharModalAula()" class="text-gray-500 hover:text-gray-700 text-xl">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Educador</label>
-                    <select id="aulaEducador" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                        <option value="">Selecione um educador</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Hora Início</label>
-                        <input type="time" id="aulaHoraInicio" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Hora Fim</label>
-                        <input type="time" id="aulaHoraFim" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                    </div>
-                </div>
-                <div class="flex flex-col md:flex-row gap-3 pt-4">
-                    <button onclick="salvarAula()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg flex-1 text-sm md:text-base">
-                        <i class="fas fa-save mr-2"></i>Salvar
-                    </button>
-                    <button onclick="fecharModalAula()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg flex-1 text-sm md:text-base">
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Estado global da aplicação
-        const state = {
-            currentMonth: new Date().getMonth(),
-            currentYear: new Date().getFullYear(),
-            selectedDate: null,
-            educadores: JSON.parse(localStorage.getItem('educadores')) || [],
-            aulas: JSON.parse(localStorage.getItem('aulas')) || [],
-            aulaIdCounter: parseInt(localStorage.getItem('aulaIdCounter')) || 1
-        };
-
-        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeReports();
-            renderCalendar();
-            renderEducadores();
-            atualizarInfoSistema();
-        });
-
-        // Funções de navegação
-        function showView(viewName) {
-            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-            document.getElementById(viewName).classList.add('active');
-        }
-        
-        function showCalendar() { showView('calendario'); }
-        function showEducadores() { showView('educadores'); }
-        function showReports() { showView('relatorios'); }
-        function showBackup() { showView('backup'); }
-
-        // Funções do calendário
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            const monthTitle = document.getElementById('currentMonth');
-            
-            if (!grid || !monthTitle) return;
-            
-            monthTitle.textContent = meses[state.currentMonth] + ' ' + state.currentYear;
-            
-            const firstDay = new Date(state.currentYear, state.currentMonth, 1);
-            const lastDay = new Date(state.currentYear, state.currentMonth + 1, 0);
-            
-            grid.innerHTML = '';
-            
-            // Encontrar a primeira segunda-feira a ser exibida
-            const startDate = new Date(firstDay);
-            const firstDayOfWeek = firstDay.getDay(); // 0=domingo, 1=segunda, etc
-            if (firstDayOfWeek === 0) { // Se o primeiro dia é domingo
-                startDate.setDate(firstDay.getDate() + 1); // Começar na segunda
-            } else {
-                startDate.setDate(firstDay.getDate() - (firstDayOfWeek - 1)); // Voltar para a segunda anterior
+          // Carrega dados do localStorage
+          useEffect(() => {
+            const dadosSalvos = localStorage.getItem('eduFatData');
+            if (dadosSalvos) {
+              const dados = JSON.parse(dadosSalvos);
+              setEducadores(dados.educadores || []);
+              setGradeAulas(dados.gradeAulas || []);
+              setCalendario(dados.calendario || {});
             }
-            
-            // Gerar 6 semanas de segunda a sábado (6 dias x 6 semanas = 36 células)
-            for (let week = 0; week < 6; week++) {
-                for (let dayOfWeek = 1; dayOfWeek <= 6; dayOfWeek++) { // 1=segunda, 6=sábado
-                    const currentDate = new Date(startDate.getTime() + ((week * 7 + dayOfWeek - 1) * 24 * 60 * 60 * 1000));
-                    
-                    // Pular domingos
-                    if (currentDate.getDay() === 0) {
-                        currentDate.setDate(currentDate.getDate() + 1);
-                    }
-                    
-                    const dayElement = document.createElement('div');
-                    dayElement.className = 'calendar-day p-1 md:p-2';
-                    
-                    const isCurrentMonth = currentDate.getMonth() === state.currentMonth;
-                    if (!isCurrentMonth) {
-                        dayElement.classList.add('opacity-30');
-                    }
-                    
-                    const dayNumber = document.createElement('div');
-                    dayNumber.className = 'text-sm md:text-base font-semibold text-gray-800 mb-1';
-                    dayNumber.textContent = currentDate.getDate();
-                    dayElement.appendChild(dayNumber);
-                    
-                    if (isCurrentMonth) {
-                        const aulasContainer = document.createElement('div');
-                        aulasContainer.className = 'space-y-1';
-                        
-                        const aulas = getAulasForDate(currentDate);
-                        let hasExceptions = false;
-                        let hasDeleted = false;
-                        
-                        aulas.forEach(aula => {
-                            const aulaElement = document.createElement('div');
-                            aulaElement.className = 'aula-item text-xs';
-                            
-                            if (aula.isDeleted) {
-                                aulaElement.classList.add('deleted');
-                                hasDeleted = true;
-                            } else if (aula.isException) {
-                                aulaElement.classList.add('exception');
-                                hasExceptions = true;
-                            }
-                            
-                            // Mostrar apenas hora e inicial do educador em mobile
-                            const isMobile = window.innerWidth < 768;
-                            if (isMobile) {
-                                const hora = aula.horario.split(' ')[0]; // Pegar apenas "08:00"
-                                const inicial = aula.educador.split(' ')[0]; // Pegar primeiro nome
-                                aulaElement.textContent = hora + ' - ' + inicial;
-                            } else {
-                                aulaElement.textContent = aula.horario + ' - ' + aula.educador;
-                            }
-                            
-                            aulasContainer.appendChild(aulaElement);
-                        });
-                        
-                        dayElement.appendChild(aulasContainer);
-                        
-                        // Aplicar classes de status
-                        if (hasDeleted) {
-                            dayElement.classList.add('has-deleted');
-                        } else if (hasExceptions) {
-                            dayElement.classList.add('has-exceptions');
-                        } else if (aulas.length > 0) {
-                            dayElement.classList.add('has-classes');
-                        }
-                        
-                        // Adicionar evento de clique
-                        dayElement.addEventListener('click', () => abrirModalDia(currentDate));
-                    }
-                    
-                    grid.appendChild(dayElement);
-                }
-            }
-        }
+          }, []);
 
-        function getAulasForDate(date) {
-            const dateString = date.toISOString().split('T')[0];
-            return state.aulas.filter(aula => aula.data === dateString);
-        }
-
-        function previousMonth() {
-            state.currentMonth--;
-            if (state.currentMonth < 0) {
-                state.currentMonth = 11;
-                state.currentYear--;
-            }
-            renderCalendar();
-        }
-
-        function nextMonth() {
-            state.currentMonth++;
-            if (state.currentMonth > 11) {
-                state.currentMonth = 0;
-                state.currentYear++;
-            }
-            renderCalendar();
-        }
-
-        // Modal de detalhes do dia
-        function abrirModalDia(date) {
-            state.selectedDate = date;
-            const modal = document.getElementById('modalDia');
-            const title = document.getElementById('modalTitle');
-            const aulasLista = document.getElementById('aulasLista');
-            
-            title.textContent = `Aulas - ${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-            
-            const aulas = getAulasForDate(date);
-            aulasLista.innerHTML = '';
-            
-            if (aulas.length === 0) {
-                aulasLista.innerHTML = '<p class="text-gray-500 text-center py-4">Nenhuma aula agendada para este dia</p>';
-            } else {
-                aulas.forEach(aula => {
-                    const aulaDiv = document.createElement('div');
-                    aulaDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                    
-                    const statusClass = aula.isDeleted ? 'text-red-600' : aula.isException ? 'text-yellow-600' : 'text-green-600';
-                    
-                    aulaDiv.innerHTML = `
-                        <div>
-                            <div class="font-medium text-gray-800">${aula.horario} - ${aula.educador}</div>
-                            <div class="text-sm text-gray-500">R$ ${aula.valor.toFixed(2)}</div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="editarAula(${aula.id})" class="text-blue-600 hover:text-blue-800">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="excluirAula(${aula.id})" class="text-red-600 hover:text-red-800">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                    
-                    aulasLista.appendChild(aulaDiv);
-                });
-            }
-            
-            modal.classList.add('show');
-        }
-
-        function fecharModal() {
-            document.getElementById('modalDia').classList.remove('show');
-        }
-
-        // Modal de adicionar/editar aula
-        function adicionarAula() {
-            const modalAula = document.getElementById('modalAula');
-            const select = document.getElementById('aulaEducador');
-            
-            // Limpar campos
-            document.getElementById('modalAulaTitle').textContent = 'Adicionar Aula';
-            select.innerHTML = '<option value="">Selecione um educador</option>';
-            document.getElementById('aulaHoraInicio').value = '';
-            document.getElementById('aulaHoraFim').value = '';
-            
-            // Preencher educadores
-            state.educadores.forEach(educador => {
-                const option = document.createElement('option');
-                option.value = educador.id;
-                option.textContent = educador.nome;
-                select.appendChild(option);
-            });
-            
-            modalAula.classList.add('show');
-        }
-
-        function salvarAula() {
-            const educadorId = document.getElementById('aulaEducador').value;
-            const horaInicio = document.getElementById('aulaHoraInicio').value;
-            const horaFim = document.getElementById('aulaHoraFim').value;
-            
-            if (!educadorId || !horaInicio || !horaFim) {
-                alert('Por favor, preencha todos os campos');
-                return;
-            }
-            
-            const educador = state.educadores.find(e => e.id === parseInt(educadorId));
-            if (!educador) {
-                alert('Educador não encontrado');
-                return;
-            }
-            
-            // Calcular horas
-            const inicio = new Date(`2000-01-01T${horaInicio}`);
-            const fim = new Date(`2000-01-01T${horaFim}`);
-            const horas = (fim - inicio) / (1000 * 60 * 60);
-            
-            if (horas <= 0) {
-                alert('Hora de fim deve ser posterior à hora de início');
-                return;
-            }
-            
-            const novaAula = {
-                id: state.aulaIdCounter++,
-                data: state.selectedDate.toISOString().split('T')[0],
-                educadorId: parseInt(educadorId),
-                educador: educador.nome,
-                horario: `${horaInicio} - ${horaFim}`,
-                horas: horas,
-                valor: horas * educador.valorHora,
-                isDeleted: false,
-                isException: false
+          // Salva dados no localStorage
+          useEffect(() => {
+            const dados = {
+              educadores,
+              gradeAulas,
+              calendario
             };
-            
-            state.aulas.push(novaAula);
-            salvarDados();
-            
-            fecharModalAula();
-            renderCalendar();
-            abrirModalDia(state.selectedDate); // Reabrir modal do dia atualizado
-        }
+            localStorage.setItem('eduFatData', JSON.stringify(dados));
+          }, [educadores, gradeAulas, calendario]);
 
-        function fecharModalAula() {
-            document.getElementById('modalAula').classList.remove('show');
-        }
+          // Fecha menu mobile ao clicar fora
+          useEffect(() => {
+            const handleClickOutside = (event) => {
+              if (mobileMenuOpen && !event.target.closest('nav')) {
+                setMobileMenuOpen(false);
+              }
+            };
 
-        function excluirAula(aulaId) {
-            if (confirm('Tem certeza que deseja excluir esta aula?')) {
-                const aulaIndex = state.aulas.findIndex(a => a.id === aulaId);
-                if (aulaIndex > -1) {
-                    state.aulas[aulaIndex].isDeleted = true;
-                    salvarDados();
-                    renderCalendar();
-                    abrirModalDia(state.selectedDate); // Reabrir modal do dia atualizado
-                }
-            }
-        }
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+          }, [mobileMenuOpen]);
 
-        // Gestão de educadores
-        function adicionarEducador() {
-            const nome = document.getElementById('nomeEducador').value;
-            const especialidade = document.getElementById('especialidadeEducador').value;
-            const valorHora = parseFloat(document.getElementById('valorHora').value);
-            
-            if (!nome || !especialidade || isNaN(valorHora) || valorHora <= 0) {
-                alert('Por favor, preencha todos os campos corretamente');
-                return;
-            }
+          // Função para adicionar horas
+          const adicionarHoras = (hora, horas) => {
+            const [h, m] = hora.split(':').map(Number);
+            const novaHora = h + horas;
+            return `${novaHora.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+          };
+
+          // Gerenciamento de Educadores
+          const adicionarEducador = () => {
+            if (!educadorForm.nome || !educadorForm.valorHora) return;
             
             const novoEducador = {
-                id: Date.now(),
-                nome: nome.trim(),
-                especialidade: especialidade.trim(),
-                valorHora: valorHora
+              id: Date.now(),
+              nome: educadorForm.nome,
+              valorHora: parseFloat(educadorForm.valorHora)
             };
             
-            state.educadores.push(novoEducador);
-            salvarDados();
-            
-            // Limpar campos
-            document.getElementById('nomeEducador').value = '';
-            document.getElementById('especialidadeEducador').value = '';
-            document.getElementById('valorHora').value = '';
-            
-            renderEducadores();
-            atualizarInfoSistema();
-        }
+            setEducadores([...educadores, novoEducador]);
+            setEducadorForm({ nome: '', valorHora: '' });
+          };
 
-        function renderEducadores() {
-            const lista = document.getElementById('listaEducadores');
-            lista.innerHTML = '';
+          const editarEducador = (educador) => {
+            setEditingEducador(educador.id);
+            setEducadorForm({ nome: educador.nome, valorHora: educador.valorHora });
+          };
+
+          const salvarEdicaoEducador = () => {
+            setEducadores(educadores.map(edu => 
+              edu.id === editingEducador 
+                ? { ...edu, nome: educadorForm.nome, valorHora: parseFloat(educadorForm.valorHora) }
+                : edu
+            ));
+            setEditingEducador(null);
+            setEducadorForm({ nome: '', valorHora: '' });
+          };
+
+          const excluirEducador = (id) => {
+            if (confirm('Tem certeza que deseja excluir este educador?')) {
+              setEducadores(educadores.filter(edu => edu.id !== id));
+            }
+          };
+
+          // Gerenciamento de Grade de Aulas
+          const adicionarAula = () => {
+            if (!aulaForm.diaSemana || !aulaForm.educadorId || !aulaForm.horaInicial) return;
             
-            if (state.educadores.length === 0) {
-                lista.innerHTML = '<div class="p-6 text-center text-gray-500">Nenhum educador cadastrado</div>';
+            const horaFinal = aulaForm.horaFinal || adicionarHoras(aulaForm.horaInicial, 2);
+            
+            const novaAula = {
+              id: Date.now(),
+              diaSemana: parseInt(aulaForm.diaSemana),
+              educadorId: parseInt(aulaForm.educadorId),
+              horaInicial: aulaForm.horaInicial,
+              horaFinal: horaFinal
+            };
+            
+            setGradeAulas([...gradeAulas, novaAula]);
+            setAulaForm({ diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' });
+          };
+
+          const editarAula = (aula) => {
+            setEditingAula(aula.id);
+            setAulaForm({
+              diaSemana: aula.diaSemana,
+              educadorId: aula.educadorId,
+              horaInicial: aula.horaInicial,
+              horaFinal: aula.horaFinal
+            });
+          };
+
+          const salvarEdicaoAula = () => {
+            const horaFinal = aulaForm.horaFinal || adicionarHoras(aulaForm.horaInicial, 2);
+            
+            setGradeAulas(gradeAulas.map(aula => 
+              aula.id === editingAula 
+                ? { 
+                    ...aula, 
+                    diaSemana: parseInt(aulaForm.diaSemana),
+                    educadorId: parseInt(aulaForm.educadorId),
+                    horaInicial: aulaForm.horaInicial,
+                    horaFinal: horaFinal
+                  }
+                : aula
+            ));
+            setEditingAula(null);
+            setAulaForm({ diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' });
+          };
+
+          const excluirAula = (id) => {
+            if (confirm('Tem certeza que deseja excluir esta aula da grade?')) {
+              setGradeAulas(gradeAulas.filter(aula => aula.id !== id));
+            }
+          };
+
+          // Geração de Calendário
+          const gerarCalendario = () => {
+            const dataAtual = new Date();
+            const mesAtual = dataAtual.getMonth();
+            const anoAtual = dataAtual.getFullYear();
+            
+            if (selectedYear < anoAtual || (selectedYear === anoAtual && selectedMonth < mesAtual)) {
+              alert('Não é possível gerar calendário para meses anteriores ao mês corrente.');
+              return;
+            }
+            
+            if (selectedYear !== anoAtual) {
+              alert('Não é possível gerar calendário para anos diferentes do ano corrente.');
+              return;
+            }
+            
+            const chaveCalendario = `${selectedYear}-${selectedMonth}`;
+            
+            if (calendario[chaveCalendario]) {
+              if (!confirm(`Já existe um calendário para ${meses[selectedMonth]}/${selectedYear}. Deseja substituí-lo? ATENÇÃO: O calendário existente será ZERADO.`)) {
                 return;
+              }
             }
             
-            state.educadores.forEach(educador => {
-                const div = document.createElement('div');
-                div.className = 'p-6 flex items-center justify-between hover:bg-gray-50';
-                div.innerHTML = `
-                    <div>
-                        <h4 class="font-semibold text-gray-800">${educador.nome}</h4>
-                        <p class="text-gray-600">${educador.especialidade}</p>
-                        <p class="text-green-600 font-medium">R$ ${educador.valorHora.toFixed(2)}/hora</p>
-                    </div>
-                    <button onclick="excluirEducador(${educador.id})" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-trash text-lg"></i>
-                    </button>
-                `;
-                lista.appendChild(div);
-            });
-        }
-
-        function excluirEducador(educadorId) {
-            if (confirm('Tem certeza que deseja excluir este educador? Todas as aulas associadas serão removidas.')) {
-                state.educadores = state.educadores.filter(e => e.id !== educadorId);
-                state.aulas = state.aulas.filter(a => a.educadorId !== educadorId);
-                salvarDados();
-                renderEducadores();
-                renderCalendar();
-                atualizarInfoSistema();
+            // Gera calendário do mês
+            const primeiroDia = new Date(selectedYear, selectedMonth, 1);
+            const ultimoDia = new Date(selectedYear, selectedMonth + 1, 0);
+            const novoCalendario = [];
+            
+            for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+              const dataAtual = new Date(selectedYear, selectedMonth, dia);
+              const diaSemana = dataAtual.getDay();
+              
+              // Verifica se é feriado
+              const dataStr = dataAtual.toISOString().split('T')[0];
+              const feriado = feriados[selectedYear]?.find(f => f.data === dataStr);
+              
+              if (feriado) {
+                novoCalendario.push({
+                  data: dataStr,
+                  aulas: [],
+                  feriado: feriado.nome
+                });
+                continue;
+              }
+              
+              // Pula domingo (dia 0)
+              if (diaSemana === 0) continue;
+              
+              // Busca aulas da grade para este dia da semana
+              const aulasParaEsseDia = gradeAulas
+                .filter(aula => aula.diaSemana === diaSemana)
+                .map(aula => ({
+                  ...aula,
+                  id: `${dataStr}-${aula.id}`,
+                  status: 'normal' // normal, excluida, modificada
+                }));
+              
+              novoCalendario.push({
+                data: dataStr,
+                aulas: aulasParaEsseDia,
+                feriado: null
+              });
             }
-        }
-
-        // Relatórios
-        function initializeReports() {
-            const monthSelect = document.getElementById('reportMonth');
-            const yearSelect = document.getElementById('reportYear');
             
-            if (!monthSelect || !yearSelect) return;
-            
-            // Preencher meses
-            meses.forEach((mes, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                option.textContent = mes;
-                if (index === new Date().getMonth()) option.selected = true;
-                monthSelect.appendChild(option);
+            setCalendario({
+              ...calendario,
+              [chaveCalendario]: novoCalendario
             });
             
-            // Preencher anos
-            const currentYear = new Date().getFullYear();
-            for (let year = currentYear - 2; year <= currentYear + 1; year++) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                if (year === currentYear) option.selected = true;
-                yearSelect.appendChild(option);
+            alert('Calendário gerado com sucesso!');
+          };
+
+          // Manutenção do Calendário
+          const excluirAulaCalendario = (chaveCalendario, dataStr, aulaId) => {
+            if (confirm('Tem certeza que deseja excluir esta aula? Ela será contabilizada como excluída nos relatórios.')) {
+              const novoCalendario = { ...calendario };
+              const diaIndex = novoCalendario[chaveCalendario].findIndex(dia => dia.data === dataStr);
+              
+              if (diaIndex !== -1) {
+                const novaAulas = novoCalendario[chaveCalendario][diaIndex].aulas.map(aula =>
+                  aula.id === aulaId ? { ...aula, status: 'excluida' } : aula
+                );
+                
+                novoCalendario[chaveCalendario][diaIndex].aulas = novaAulas;
+                setCalendario(novoCalendario);
+              }
             }
-        }
+          };
 
-        function gerarRelatorio() {
-            const month = parseInt(document.getElementById('reportMonth').value);
-            const year = parseInt(document.getElementById('reportYear').value);
-            
-            // Filtrar aulas do mês/ano selecionado
-            const aulasDoMes = state.aulas.filter(aula => {
-                const aulaDate = new Date(aula.data);
-                return aulaDate.getMonth() === month && aulaDate.getFullYear() === year && !aula.isDeleted;
+          const iniciarEdicaoAulaCalendario = (chaveCalendario, dataStr, aula) => {
+            setEditingAulaCalendario({ chaveCalendario, dataStr, aulaId: aula.id });
+            setManutencaoForm({
+              educadorId: aula.educadorId,
+              horaInicial: aula.horaInicial,
+              horaFinal: aula.horaFinal
             });
+          };
+
+          const salvarModificacaoAulaCalendario = () => {
+            const { chaveCalendario, dataStr, aulaId } = editingAulaCalendario;
+            const novoCalendario = { ...calendario };
+            const diaIndex = novoCalendario[chaveCalendario].findIndex(dia => dia.data === dataStr);
             
-            const aulasExcluidas = state.aulas.filter(aula => {
-                const aulaDate = new Date(aula.data);
-                return aulaDate.getMonth() === month && aulaDate.getFullYear() === year && aula.isDeleted;
-            });
+            if (diaIndex !== -1) {
+              const novaAulas = novoCalendario[chaveCalendario][diaIndex].aulas.map(aula =>
+                aula.id === aulaId ? { 
+                  ...aula, 
+                  educadorId: parseInt(manutencaoForm.educadorId),
+                  horaInicial: manutencaoForm.horaInicial,
+                  horaFinal: manutencaoForm.horaFinal,
+                  status: 'modificada' 
+                } : aula
+              );
+              
+              novoCalendario[chaveCalendario][diaIndex].aulas = novaAulas;
+              setCalendario(novoCalendario);
+            }
             
-            // Estatísticas gerais
-            document.getElementById('totalEducadoresReport').textContent = state.educadores.length;
-            document.getElementById('totalAulasRealizadas').textContent = aulasDoMes.length;
-            document.getElementById('totalAulasExcluidas').textContent = aulasExcluidas.length;
+            setEditingAulaCalendario(null);
+            setManutencaoForm({ educadorId: '', horaInicial: '', horaFinal: '' });
+          };
+
+          const cancelarEdicaoAulaCalendario = () => {
+            setEditingAulaCalendario(null);
+            setManutencaoForm({ educadorId: '', horaInicial: '', horaFinal: '' });
+          };
+
+          const restaurarAulaCalendario = (chaveCalendario, dataStr, aulaId) => {
+            if (confirm('Tem certeza que deseja restaurar esta aula ao estado original?')) {
+              const novoCalendario = { ...calendario };
+              const diaIndex = novoCalendario[chaveCalendario].findIndex(dia => dia.data === dataStr);
+              
+              if (diaIndex !== -1) {
+                const novaAulas = novoCalendario[chaveCalendario][diaIndex].aulas.map(aula => {
+                  if (aula.id === aulaId) {
+                    // Busca a aula original na grade
+                    const aulaOriginalId = parseInt(aula.id.split('-').pop());
+                    const aulaOriginal = gradeAulas.find(a => a.id === aulaOriginalId);
+                    
+                    if (aulaOriginal) {
+                      return {
+                        ...aula,
+                        educadorId: aulaOriginal.educadorId,
+                        horaInicial: aulaOriginal.horaInicial,
+                        horaFinal: aulaOriginal.horaFinal,
+                        status: 'normal'
+                      };
+                    }
+                  }
+                  return aula;
+                });
+                
+                novoCalendario[chaveCalendario][diaIndex].aulas = novaAulas;
+                setCalendario(novoCalendario);
+              }
+            }
+          };
+
+          // Cálculo de totalizações
+          const calcularTotalizacao = () => {
+            const chaveCalendario = `${selectedYear}-${selectedMonth}`;
+            const calendarioMes = calendario[chaveCalendario] || [];
             
-            const totalPagamento = aulasDoMes.reduce((sum, aula) => sum + aula.valor, 0);
-            document.getElementById('totalPagamento').textContent = `R$ ${totalPagamento.toFixed(2)}`;
+            let totalGeral = {
+              aulasRealizadas: 0,
+              aulasExcluidas: 0,
+              valorTotal: 0
+            };
             
-            // Relatório detalhado por educador
-            const relatorioDetalhado = document.getElementById('relatorioDetalhado');
-            relatorioDetalhado.innerHTML = '';
+            let totaisPorEducador = {};
             
-            const educadoresComAulas = {};
-            aulasDoMes.forEach(aula => {
-                if (!educadoresComAulas[aula.educadorId]) {
-                    educadoresComAulas[aula.educadorId] = {
-                        nome: aula.educador,
-                        aulas: [],
-                        totalHoras: 0,
-                        totalValor: 0
+            calendarioMes.forEach(dia => {
+              if (!dia.feriado) {
+                dia.aulas.forEach(aula => {
+                  const educador = educadores.find(e => e.id === aula.educadorId);
+                  if (!educador) return;
+                  
+                  const horasAula = calcularHorasAula(aula.horaInicial, aula.horaFinal);
+                  const valorAula = horasAula * educador.valorHora;
+                  
+                  if (!totaisPorEducador[educador.id]) {
+                    totaisPorEducador[educador.id] = {
+                      nome: educador.nome,
+                      aulasRealizadas: 0,
+                      aulasExcluidas: 0,
+                      valorTotal: 0
                     };
-                }
-                educadoresComAulas[aula.educadorId].aulas.push(aula);
-                educadoresComAulas[aula.educadorId].totalHoras += aula.horas;
-                educadoresComAulas[aula.educadorId].totalValor += aula.valor;
+                  }
+                  
+                  if (aula.status === 'excluida') {
+                    totalGeral.aulasExcluidas++;
+                    totaisPorEducador[educador.id].aulasExcluidas++;
+                  } else {
+                    totalGeral.aulasRealizadas++;
+                    totalGeral.valorTotal += valorAula;
+                    totaisPorEducador[educador.id].aulasRealizadas++;
+                    totaisPorEducador[educador.id].valorTotal += valorAula;
+                  }
+                });
+              }
             });
             
-            if (Object.keys(educadoresComAulas).length === 0) {
-                relatorioDetalhado.innerHTML = '<div class="p-6 text-center text-gray-500">Nenhuma aula encontrada para este período</div>';
-                return;
-            }
-            
-            Object.values(educadoresComAulas).forEach(educadorData => {
-                const educadorDiv = document.createElement('div');
-                educadorDiv.className = 'border-b border-gray-200 p-6';
-                
-                educadorDiv.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-lg font-semibold text-gray-800">${educadorData.nome}</h4>
-                        <div class="text-right">
-                            <div class="text-sm text-gray-500">${educadorData.aulas.length} aulas • ${educadorData.totalHoras.toFixed(1)}h</div>
-                            <div class="text-lg font-bold text-green-600">R$ ${educadorData.totalValor.toFixed(2)}</div>
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-600">
-                        ${educadorData.aulas.map(aula => 
-                            `<div class="flex justify-between py-1">
-                                <span>${new Date(aula.data).getDate()}/${new Date(aula.data).getMonth() + 1} - ${aula.horario}</span>
-                                <span>R$ ${aula.valor.toFixed(2)}</span>
-                            </div>`
-                        ).join('')}
-                    </div>
-                `;
-                
-                relatorioDetalhado.appendChild(educadorDiv);
-            });
-        }
+            return { totalGeral, totaisPorEducador };
+          };
 
-        // Backup
-        function fazerBackup() {
+          const calcularHorasAula = (horaInicial, horaFinal) => {
+            const [hIni, mIni] = horaInicial.split(':').map(Number);
+            const [hFim, mFim] = horaFinal.split(':').map(Number);
+            
+            const minutosIni = hIni * 60 + mIni;
+            const minutosFim = hFim * 60 + mFim;
+            
+            return (minutosFim - minutosIni) / 60;
+          };
+
+          // Sistema de Backup
+          const fazerBackup = () => {
             const dados = {
-                educadores: state.educadores,
-                aulas: state.aulas,
-                aulaIdCounter: state.aulaIdCounter,
-                dataBackup: new Date().toISOString()
+              educadores,
+              gradeAulas,
+              calendario,
+              timestamp: new Date().toISOString()
             };
             
-            const dataStr = JSON.stringify(dados, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `educontrol-backup-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            
-            // Atualizar informações
-            localStorage.setItem('ultimoBackup', new Date().toISOString());
-            atualizarInfoSistema();
-        }
+            const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `edufat-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+          };
 
-        function restaurarBackup() {
-            const fileInput = document.getElementById('backupFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                alert('Por favor, selecione um arquivo de backup');
-                return;
-            }
+          const restaurarBackup = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const dados = JSON.parse(e.target.result);
-                    
-                    if (!dados.educadores || !dados.aulas) {
-                        throw new Error('Arquivo de backup inválido');
-                    }
-                    
-                    if (confirm('Tem certeza que deseja restaurar o backup? Todos os dados atuais serão substituídos.')) {
-                        state.educadores = dados.educadores || [];
-                        state.aulas = dados.aulas || [];
-                        state.aulaIdCounter = dados.aulaIdCounter || 1;
-                        
-                        salvarDados();
-                        renderCalendar();
-                        renderEducadores();
-                        atualizarInfoSistema();
-                        
-                        alert('Backup restaurado com sucesso!');
-                        fileInput.value = '';
-                    }
-                } catch (error) {
-                    alert('Erro ao restaurar backup: ' + error.message);
+            reader.onload = (e) => {
+              try {
+                const dados = JSON.parse(e.target.result);
+                if (confirm('Tem certeza que deseja restaurar o backup? Todos os dados atuais serão substituídos.')) {
+                  setEducadores(dados.educadores || []);
+                  setGradeAulas(dados.gradeAulas || []);
+                  setCalendario(dados.calendario || {});
+                  alert('Backup restaurado com sucesso!');
                 }
+              } catch (error) {
+                alert('Erro ao restaurar backup. Verifique se o arquivo está correto.');
+              }
             };
             reader.readAsText(file);
-        }
+          };
 
-        function atualizarInfoSistema() {
-            const ultimoBackupElement = document.getElementById('ultimoBackup');
-            const totalEducadoresElement = document.getElementById('totalEducadoresInfo');
-            const tamanhoDadosElement = document.getElementById('tamanhoDados');
-            
-            if (!ultimoBackupElement || !totalEducadoresElement || !tamanhoDadosElement) return;
-            
-            const ultimoBackup = localStorage.getItem('ultimoBackup');
-            if (ultimoBackup) {
-                const data = new Date(ultimoBackup);
-                ultimoBackupElement.textContent = data.toLocaleDateString('pt-BR');
-            } else {
-                ultimoBackupElement.textContent = 'Nunca';
+          const inicializarBase = () => {
+            if (confirm('Tem certeza que deseja inicializar a base de dados? Todos os dados serão perdidos.')) {
+              setEducadores([]);
+              setGradeAulas([]);
+              setCalendario({});
+              localStorage.removeItem('eduFatData');
+              alert('Base de dados inicializada com sucesso!');
             }
+          };
+
+          // Renderização das views
+          const renderDashboard = () => {
+            const { totalGeral, totaisPorEducador } = calcularTotalizacao();
             
-            totalEducadoresElement.textContent = state.educadores.length;
+            return (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800">Dashboard - {meses[selectedMonth]} {selectedYear}</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">Aulas Realizadas</h3>
+                    <p className="text-3xl font-bold text-green-600">{totalGeral.aulasRealizadas}</p>
+                  </div>
+                  
+                  <div className="bg-red-50 p-6 rounded-lg border border-red-200">
+                    <h3 className="text-lg font-semibold text-red-800 mb-2">Aulas Excluídas</h3>
+                    <p className="text-3xl font-bold text-red-600">{totalGeral.aulasExcluidas}</p>
+                  </div>
+                  
+                  <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-2">Total a Pagar</h3>
+                    <p className="text-3xl font-bold text-blue-600">R$ {totalGeral.valorTotal.toFixed(2)}</p>
+                  </div>
+                </div>
+                
+                {Object.keys(totaisPorEducador).length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 className="text-xl font-semibold mb-4">Totais por Educador</h3>
+                    
+                    {/* Desktop: Tabela */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full table-auto">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Educador</th>
+                            <th className="text-center p-2">Realizadas</th>
+                            <th className="text-center p-2">Excluídas</th>
+                            <th className="text-right p-2">Total (R$)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.values(totaisPorEducador).map((total, index) => (
+                            <tr key={index} className="border-b">
+                              <td className="p-2 font-medium">{total.nome}</td>
+                              <td className="p-2 text-center text-green-600">{total.aulasRealizadas}</td>
+                              <td className="p-2 text-center text-red-600">{total.aulasExcluidas}</td>
+                              <td className="p-2 text-right font-semibold">R$ {total.valorTotal.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Mobile: Cards */}
+                    <div className="md:hidden space-y-4">
+                      {Object.values(totaisPorEducador).map((total, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-4 border">
+                          <div className="flex justify-between items-center mb-3">
+                            <h4 className="font-semibold text-lg text-gray-800">{total.nome}</h4>
+                            <span className="text-lg font-bold text-blue-600">R$ {total.valorTotal.toFixed(2)}</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">{total.aulasRealizadas}</div>
+                              <div className="text-sm text-gray-600">Realizadas</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-red-600">{total.aulasExcluidas}</div>
+                              <div className="text-sm text-gray-600">Excluídas</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          };
+
+          const renderEducadores = () => (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-800">Gerenciar Educadores</h2>
+              
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingEducador ? 'Editar Educador' : 'Novo Educador'}
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Nome do educador"
+                    value={educadorForm.nome}
+                    onChange={(e) => setEducadorForm({...educadorForm, nome: e.target.value})}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Valor por hora"
+                    value={educadorForm.valorHora}
+                    onChange={(e) => setEducadorForm({...educadorForm, valorHora: e.target.value})}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="flex gap-2">
+                    {editingEducador ? (
+                      <>
+                        <button
+                          onClick={salvarEdicaoEducador}
+                          className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                        >
+                          <Save size={16} />
+                          Salvar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingEducador(null);
+                            setEducadorForm({ nome: '', valorHora: '' });
+                          }}
+                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center"
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={adicionarEducador}
+                        className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                      >
+                        <Plus size={16} />
+                        Adicionar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Educadores Cadastrados</h3>
+                  
+                  {educadores.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Nenhum educador cadastrado</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full table-auto">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Nome</th>
+                            <th className="text-center p-2">Valor/Hora</th>
+                            <th className="text-center p-2">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {educadores.map((educador) => (
+                            <tr key={educador.id} className="border-b">
+                              <td className="p-2 font-medium">{educador.nome}</td>
+                              <td className="p-2 text-center">R$ {educador.valorHora.toFixed(2)}</td>
+                              <td className="p-2 text-center">
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    onClick={() => editarEducador(educador)}
+                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => excluirEducador(educador.id)}
+                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+
+          const renderGradeAulas = () => (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-800">Grade de Aulas Base</h2>
+              
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  {editingAula ? 'Editar Aula' : 'Nova Aula'}
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                  <select
+                    value={aulaForm.diaSemana}
+                    onChange={(e) => setAulaForm({...aulaForm, diaSemana: e.target.value})}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Dia da Semana</option>
+                    {diasSemana.map(dia => (
+                      <option key={dia.id} value={dia.id}>{dia.nome}</option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={aulaForm.educadorId}
+                    onChange={(e) => setAulaForm({...aulaForm, educadorId: e.target.value})}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Educador</option>
+                    {educadores.map(educador => (
+                      <option key={educador.id} value={educador.id}>{educador.nome}</option>
+                    ))}
+                  </select>
+                  
+                  <input
+                    type="time"
+                    placeholder="Hora Inicial"
+                    value={aulaForm.horaInicial}
+                    onChange={(e) => setAulaForm({
+                      ...aulaForm, 
+                      horaInicial: e.target.value,
+                      horaFinal: e.target.value ? adicionarHoras(e.target.value, 2) : ''
+                    })}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  
+                  <input
+                    type="time"
+                    placeholder="Hora Final"
+                    value={aulaForm.horaFinal}
+                    onChange={(e) => setAulaForm({...aulaForm, horaFinal: e.target.value})}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  
+                  <div className="flex gap-2">
+                    {editingAula ? (
+                      <>
+                        <button
+                          onClick={salvarEdicaoAula}
+                          className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                        >
+                          <Save size={16} />
+                          Salvar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingAula(null);
+                            setAulaForm({ diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' });
+                          }}
+                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center"
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={adicionarAula}
+                        className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                      >
+                        <Plus size={16} />
+                        Adicionar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Grade Cadastrada</h3>
+                  
+                  {gradeAulas.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Nenhuma aula cadastrada na grade</p>
+                  ) : (
+                    <>
+                      {/* Desktop: Tabela */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full table-auto">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-2">Dia</th>
+                              <th className="text-left p-2">Educador</th>
+                              <th className="text-center p-2">Horário</th>
+                              <th className="text-center p-2">Duração</th>
+                              <th className="text-center p-2">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {gradeAulas.map((aula) => {
+                              const educador = educadores.find(e => e.id === aula.educadorId);
+                              const dia = diasSemana.find(d => d.id === aula.diaSemana);
+                              const duracao = calcularHorasAula(aula.horaInicial, aula.horaFinal);
+                              
+                              return (
+                                <tr key={aula.id} className="border-b">
+                                  <td className="p-2 font-medium">{dia?.nome}</td>
+                                  <td className="p-2">{educador?.nome}</td>
+                                  <td className="p-2 text-center">{aula.horaInicial} - {aula.horaFinal}</td>
+                                  <td className="p-2 text-center">{duracao}h</td>
+                                  <td className="p-2 text-center">
+                                    <div className="flex justify-center gap-2">
+                                      <button
+                                        onClick={() => editarAula(aula)}
+                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                      >
+                                        <Edit size={16} />
+                                      </button>
+                                      <button
+                                        onClick={() => excluirAula(aula.id)}
+                                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Mobile: Cards */}
+                      <div className="md:hidden space-y-4">
+                        {gradeAulas.map((aula) => {
+                          const educador = educadores.find(e => e.id === aula.educadorId);
+                          const dia = diasSemana.find(d => d.id === aula.diaSemana);
+                          const duracao = calcularHorasAula(aula.horaInicial, aula.horaFinal);
+                          
+                          return (
+                            <div key={aula.id} className="bg-gray-50 rounded-lg p-4 border">
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-lg text-gray-800 mb-1">{dia?.nome}</h4>
+                                  <p className="text-gray-600 mb-2">{educador?.nome}</p>
+                                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                                    <span className="font-medium">{aula.horaInicial} - {aula.horaFinal}</span>
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                      {duracao}h
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex gap-2 ml-4">
+                                  <button
+                                    onClick={() => editarAula(aula)}
+                                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                                    title="Editar aula"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => excluirAula(aula.id)}
+                                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                                    title="Excluir aula"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+
+          const renderCalendario = () => {
+            const chaveCalendario = `${selectedYear}-${selectedMonth}`;
+            const calendarioMes = calendario[chaveCalendario] || [];
             
-            const dados = JSON.stringify({educadores: state.educadores, aulas: state.aulas});
-            const tamanho = new Blob([dados]).size;
-            tamanhoDadosElement.textContent = `${(tamanho / 1024).toFixed(1)} KB`;
-        }
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h2 className="text-2xl font-bold text-gray-800">Calendário</h2>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        {meses.map((mes, index) => (
+                          <option key={index} value={index}>{mes}</option>
+                        ))}
+                      </select>
+                      
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={gerarCalendario}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Calendar size={16} />
+                        Gerar Calendário
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {calendarioMes.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
+                    <p className="text-gray-500">Nenhum calendário gerado para {meses[selectedMonth]} {selectedYear}</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow-sm border">
+                    <div className="p-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-semibold">
+                          Calendário de {meses[selectedMonth]} {selectedYear}
+                        </h3>
+                        
+                        <div className="text-sm text-gray-600">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-green-200 rounded border border-green-300"></div>
+                              <span>Normal</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-yellow-200 rounded border border-yellow-300"></div>
+                              <span>Modificada</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-red-200 rounded border border-red-300"></div>
+                              <span>Excluída</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {editingAulaCalendario && (
+                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold mb-3 text-blue-800">Modificar Aula</h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <select
+                              value={manutencaoForm.educadorId}
+                              onChange={(e) => setManutencaoForm({...manutencaoForm, educadorId: e.target.value})}
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">Selecionar educador</option>
+                              {educadores.map(educador => (
+                                <option key={educador.id} value={educador.id}>{educador.nome}</option>
+                              ))}
+                            </select>
+                            
+                            <input
+                              type="time"
+                              value={manutencaoForm.horaInicial}
+                              onChange={(e) => setManutencaoForm({
+                                ...manutencaoForm, 
+                                horaInicial: e.target.value,
+                                horaFinal: e.target.value ? adicionarHoras(e.target.value, 2) : manutencaoForm.horaFinal
+                              })}
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              title="Hora inicial"
+                            />
+                            
+                            <input
+                              type="time"
+                              value={manutencaoForm.horaFinal}
+                              onChange={(e) => setManutencaoForm({...manutencaoForm, horaFinal: e.target.value})}
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              title="Hora final"
+                            />
+                            
+                            <div className="flex gap-2">
+                              <button
+                                onClick={salvarModificacaoAulaCalendario}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                              >
+                                <Save size={16} />
+                                Salvar
+                              </button>
+                              <button
+                                onClick={cancelarEdicaoAulaCalendario}
+                                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 flex items-center gap-2"
+                              >
+                                <X size={16} />
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs text-blue-600 mt-2">
+                            💡 Dica: Modificar a hora inicial automaticamente ajusta para 2h de duração. Você pode alterar a hora final se necessário.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-4">
+                        {calendarioMes.map((dia, index) => (
+                          <div key={index} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <h4 className="font-semibold">
+                                {new Date(dia.data + 'T00:00:00').toLocaleDateString('pt-BR', {
+                                  weekday: 'long',
+                                  day: '2-digit',
+                                  month: '2-digit'
+                                })}
+                              </h4>
+                              
+                              {dia.feriado && (
+                                <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
+                                  {dia.feriado}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {dia.aulas.length === 0 ? (
+                              <p className="text-gray-500 text-sm">
+                                {dia.feriado ? 'Sem aulas - Feriado' : 'Sem aulas'}
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {dia.aulas.map((aula) => {
+                                  const educador = educadores.find(e => e.id === aula.educadorId);
+                                  const duracao = calcularHorasAula(aula.horaInicial, aula.horaFinal);
+                                  const valor = duracao * (educador?.valorHora || 0);
+                                  
+                                  return (
+                                    <div
+                                      key={aula.id}
+                                      className={`p-3 rounded-lg border ${
+                                        aula.status === 'excluida' 
+                                          ? 'bg-red-50 border-red-200 text-red-800' 
+                                          : aula.status === 'modificada'
+                                          ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                                          : 'bg-green-50 border-green-200 text-green-800'
+                                      }`}
+                                    >
+                                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                        <div className="flex-1">
+                                          <p className="font-medium">{educador?.nome}</p>
+                                          <p className="text-sm">
+                                            {aula.horaInicial} - {aula.horaFinal} ({duracao}h) - R$ {valor.toFixed(2)}
+                                          </p>
+                                          {aula.status === 'excluida' && (
+                                            <p className="text-xs font-medium">AULA EXCLUÍDA</p>
+                                          )}
+                                          {aula.status === 'modificada' && (
+                                            <p className="text-xs font-medium">AULA MODIFICADA</p>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="flex gap-1">
+                                          {aula.status === 'excluida' ? (
+                                            <button
+                                              onClick={() => restaurarAulaCalendario(chaveCalendario, dia.data, aula.id)}
+                                              className="p-1 text-green-600 hover:bg-green-100 rounded"
+                                              title="Restaurar aula"
+                                            >
+                                              <RefreshCw size={14} />
+                                            </button>
+                                          ) : (
+                                            <>
+                                              <button
+                                                onClick={() => iniciarEdicaoAulaCalendario(chaveCalendario, dia.data, aula)}
+                                                className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                                                title="Modificar aula"
+                                              >
+                                                <Edit size={14} />
+                                              </button>
+                                              <button
+                                                onClick={() => excluirAulaCalendario(chaveCalendario, dia.data, aula.id)}
+                                                className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                                title="Excluir aula"
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          };
 
-        // Menu mobile
-        function toggleMobileMenu() {
-            document.getElementById('mobileMenu').classList.toggle('hidden');
-        }
+          const renderConfiguracoes = () => (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-800">Configurações</h2>
+              
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold mb-4">Backup e Restauração</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <button
+                    onClick={fazerBackup}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                  >
+                    <Download size={16} />
+                    Fazer Backup
+                  </button>
+                  
+                  <label className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer">
+                    <Upload size={16} />
+                    Restaurar Backup
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={restaurarBackup}
+                      className="hidden"
+                    />
+                  </label>
+                  
+                  <button
+                    onClick={inicializarBase}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw size={16} />
+                    Inicializar Base
+                  </button>
+                </div>
+                
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <strong>Backup:</strong> Faz o download de todos os dados em formato JSON.<br/>
+                    <strong>Restaurar:</strong> Substitui todos os dados pelos do arquivo de backup.<br/>
+                    <strong>Inicializar:</strong> Remove todos os dados e reinicia o sistema.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
 
-        function closeMobileMenu() {
-            document.getElementById('mobileMenu').classList.add('hidden');
-        }
+          return (
+            <div className="min-h-screen bg-gray-50">
+              {/* Header */}
+              <header className="bg-white shadow-sm border-b">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="flex justify-between items-center py-4">
+                    <h1 className="text-2xl font-bold text-blue-600">EduFat</h1>
+                    <div className="flex items-center gap-4">
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      >
+                        {meses.map((mes, index) => (
+                          <option key={index} value={index}>{mes}</option>
+                        ))}
+                      </select>
+                      
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </header>
 
-        // Salvar dados no localStorage
-        function salvarDados() {
-            localStorage.setItem('educadores', JSON.stringify(state.educadores));
-            localStorage.setItem('aulas', JSON.stringify(state.aulas));
-            localStorage.setItem('aulaIdCounter', state.aulaIdCounter.toString());
-        }
+              {/* Navigation */}
+              <nav className="bg-white shadow-sm border-b">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  {/* Desktop Navigation */}
+                  <div className="hidden md:flex overflow-x-auto">
+                    {[
+                      { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                      { id: 'educadores', label: 'Educadores', icon: User },
+                      { id: 'grade', label: 'Grade', icon: BookOpen },
+                      { id: 'calendario', label: 'Calendário', icon: Calendar },
+                      { id: 'config', label: 'Configurações', icon: Settings }
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setCurrentView(item.id)}
+                          className={`flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap ${
+                            currentView === item.id
+                              ? 'border-blue-500 text-blue-600 bg-blue-50'
+                              : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon size={18} />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Mobile Navigation */}
+                  <div className="md:hidden">
+                    <div className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-3">
+                        {[
+                          { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                          { id: 'educadores', label: 'Educadores', icon: User },
+                          { id: 'grade', label: 'Grade', icon: BookOpen },
+                          { id: 'calendario', label: 'Calendário', icon: Calendar },
+                          { id: 'config', label: 'Configurações', icon: Settings }
+                        ].find(item => item.id === currentView) && (
+                          <>
+                            {React.createElement([
+                              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                              { id: 'educadores', label: 'Educadores', icon: User },
+                              { id: 'grade', label: 'Grade', icon: BookOpen },
+                              { id: 'calendario', label: 'Calendário', icon: Calendar },
+                              { id: 'config', label: 'Configurações', icon: Settings }
+                            ].find(item => item.id === currentView).icon, { size: 20, className: 'text-blue-600' })}
+                            <span className="font-medium text-gray-800">
+                              {[
+                                { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                                { id: 'educadores', label: 'Educadores', icon: User },
+                                { id: 'grade', label: 'Grade', icon: BookOpen },
+                                { id: 'calendario', label: 'Calendário', icon: Calendar },
+                                { id: 'config', label: 'Configurações', icon: Settings }
+                              ].find(item => item.id === currentView).label}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      
+                      <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+                      >
+                        <Menu size={20} />
+                      </button>
+                    </div>
+                    
+                    {/* Mobile Menu Dropdown */}
+                    {mobileMenuOpen && (
+                      <div className="absolute left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+                        <div className="max-w-7xl mx-auto px-4 py-2">
+                          {[
+                            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+                            { id: 'educadores', label: 'Educadores', icon: User },
+                            { id: 'grade', label: 'Grade', icon: BookOpen },
+                            { id: 'calendario', label: 'Calendário', icon: Calendar },
+                            { id: 'config', label: 'Configurações', icon: Settings }
+                          ].map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  setCurrentView(item.id);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${
+                                  currentView === item.id
+                                    ? 'bg-blue-50 text-blue-600'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                                }`}
+                              >
+                                <Icon size={18} />
+                                {item.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </nav>
+
+              {/* Main Content */}
+              <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {currentView === 'dashboard' && renderDashboard()}
+                {currentView === 'educadores' && renderEducadores()}
+                {currentView === 'grade' && renderGradeAulas()}
+                {currentView === 'calendario' && renderCalendario()}
+                {currentView === 'config' && renderConfiguracoes()}
+              </main>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<EduFat />, document.getElementById('root'));
     </script>
 </body>
 </html>
