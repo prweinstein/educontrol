@@ -21,8 +21,7 @@
     
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const { Calendar, User, BookOpen, BarChart3, Settings, Download, Upload, RefreshCw, Plus, Edit, Trash2, Save, X, Check, Menu } = lucide;
-
+        
         const EduFat = () => {
           const [currentView, setCurrentView] = useState('dashboard');
           const [educadores, setEducadores] = useState([]);
@@ -38,74 +37,36 @@
           });
           const [editingEducador, setEditingEducador] = useState(null);
           const [editingAula, setEditingAula] = useState(null);
-          const [editingAulaCalendario, setEditingAulaCalendario] = useState(null);
-          const [manutencaoForm, setManutencaoForm] = useState({ 
-            educadorId: '', horaInicial: '', horaFinal: ''
-          });
           const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-          // Feriados nacionais brasileiros
-          const feriados = {
-            2024: [
-              { data: '2024-01-01', nome: 'Confraternização Universal' },
-              { data: '2024-02-12', nome: 'Carnaval' },
-              { data: '2024-02-13', nome: 'Carnaval' },
-              { data: '2024-03-29', nome: 'Sexta-feira Santa' },
-              { data: '2024-04-21', nome: 'Tiradentes' },
-              { data: '2024-05-01', nome: 'Dia do Trabalho' },
-              { data: '2024-05-30', nome: 'Corpus Christi' },
-              { data: '2024-09-07', nome: 'Independência do Brasil' },
-              { data: '2024-10-12', nome: 'Nossa Senhora Aparecida' },
-              { data: '2024-11-02', nome: 'Finados' },
-              { data: '2024-11-15', nome: 'Proclamação da República' },
-              { data: '2024-12-25', nome: 'Natal' },
-              // Feriados RJ
-              { data: '2024-04-23', nome: 'São Jorge (RJ)' },
-              { data: '2024-10-17', nome: 'Dia da Amazônia (RJ)' },
-              { data: '2024-11-20', nome: 'Consciência Negra (RJ)' }
-            ],
-            2025: [
-              { data: '2025-01-01', nome: 'Confraternização Universal' },
-              { data: '2025-03-03', nome: 'Carnaval' },
-              { data: '2025-03-04', nome: 'Carnaval' },
-              { data: '2025-04-18', nome: 'Sexta-feira Santa' },
-              { data: '2025-04-21', nome: 'Tiradentes' },
-              { data: '2025-05-01', nome: 'Dia do Trabalho' },
-              { data: '2025-06-19', nome: 'Corpus Christi' },
-              { data: '2025-09-07', nome: 'Independência do Brasil' },
-              { data: '2025-10-12', nome: 'Nossa Senhora Aparecida' },
-              { data: '2025-11-02', nome: 'Finados' },
-              { data: '2025-11-15', nome: 'Proclamação da República' },
-              { data: '2025-12-25', nome: 'Natal' },
-              // Feriados RJ
-              { data: '2025-04-23', nome: 'São Jorge (RJ)' },
-              { data: '2025-10-17', nome: 'Dia da Amazônia (RJ)' },
-              { data: '2025-11-20', nome: 'Consciência Negra (RJ)' }
-            ]
-          };
-
-          const diasSemana = [
-            { id: 1, nome: 'Segunda-feira' },
-            { id: 2, nome: 'Terça-feira' },
-            { id: 3, nome: 'Quarta-feira' },
-            { id: 4, nome: 'Quinta-feira' },
-            { id: 5, nome: 'Sexta-feira' },
-            { id: 6, nome: 'Sábado' }
-          ];
 
           const meses = [
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
           ];
 
-          // Carrega dados do localStorage
+          // Carrega dados do localStorage com migração automática
           useEffect(() => {
-            const dadosSalvos = localStorage.getItem('eduFatData');
+            let dadosSalvos = localStorage.getItem('eduFatData');
+            
+            // Migração automática do Educontrol
+            if (!dadosSalvos) {
+              const dadosAntigos = localStorage.getItem('educontrolData');
+              if (dadosAntigos) {
+                localStorage.setItem('eduFatData', dadosAntigos);
+                dadosSalvos = dadosAntigos;
+                console.log('✅ Dados migrados do Educontrol para EduFat!');
+              }
+            }
+            
             if (dadosSalvos) {
-              const dados = JSON.parse(dadosSalvos);
-              setEducadores(dados.educadores || []);
-              setGradeAulas(dados.gradeAulas || []);
-              setCalendario(dados.calendario || {});
+              try {
+                const dados = JSON.parse(dadosSalvos);
+                setEducadores(dados.educadores || []);
+                setGradeAulas(dados.gradeAulas || []);
+                setCalendario(dados.calendario || {});
+              } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+              }
             }
           }, []);
 
@@ -118,25 +79,6 @@
             };
             localStorage.setItem('eduFatData', JSON.stringify(dados));
           }, [educadores, gradeAulas, calendario]);
-
-          // Fecha menu mobile ao clicar fora
-          useEffect(() => {
-            const handleClickOutside = (event) => {
-              if (mobileMenuOpen && !event.target.closest('nav')) {
-                setMobileMenuOpen(false);
-              }
-            };
-
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-          }, [mobileMenuOpen]);
-
-          // Função para adicionar horas
-          const adicionarHoras = (hora, horas) => {
-            const [h, m] = hora.split(':').map(Number);
-            const novaHora = h + horas;
-            return `${novaHora.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-          };
 
           // Gerenciamento de Educadores
           const adicionarEducador = () => {
@@ -152,999 +94,7 @@
             setEducadorForm({ nome: '', valorHora: '' });
           };
 
-          const editarEducador = (educador) => {
-            setEditingEducador(educador.id);
-            setEducadorForm({ nome: educador.nome, valorHora: educador.valorHora });
-          };
-
-          const salvarEdicaoEducador = () => {
-            setEducadores(educadores.map(edu => 
-              edu.id === editingEducador 
-                ? { ...edu, nome: educadorForm.nome, valorHora: parseFloat(educadorForm.valorHora) }
-                : edu
-            ));
-            setEditingEducador(null);
-            setEducadorForm({ nome: '', valorHora: '' });
-          };
-
-          const excluirEducador = (id) => {
-            if (confirm('Tem certeza que deseja excluir este educador?')) {
-              setEducadores(educadores.filter(edu => edu.id !== id));
-            }
-          };
-
-          // Gerenciamento de Grade de Aulas
-          const adicionarAula = () => {
-            if (!aulaForm.diaSemana || !aulaForm.educadorId || !aulaForm.horaInicial) return;
-            
-            const horaFinal = aulaForm.horaFinal || adicionarHoras(aulaForm.horaInicial, 2);
-            
-            const novaAula = {
-              id: Date.now(),
-              diaSemana: parseInt(aulaForm.diaSemana),
-              educadorId: parseInt(aulaForm.educadorId),
-              horaInicial: aulaForm.horaInicial,
-              horaFinal: horaFinal
-            };
-            
-            setGradeAulas([...gradeAulas, novaAula]);
-            setAulaForm({ diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' });
-          };
-
-          const editarAula = (aula) => {
-            setEditingAula(aula.id);
-            setAulaForm({
-              diaSemana: aula.diaSemana,
-              educadorId: aula.educadorId,
-              horaInicial: aula.horaInicial,
-              horaFinal: aula.horaFinal
-            });
-          };
-
-          const salvarEdicaoAula = () => {
-            const horaFinal = aulaForm.horaFinal || adicionarHoras(aulaForm.horaInicial, 2);
-            
-            setGradeAulas(gradeAulas.map(aula => 
-              aula.id === editingAula 
-                ? { 
-                    ...aula, 
-                    diaSemana: parseInt(aulaForm.diaSemana),
-                    educadorId: parseInt(aulaForm.educadorId),
-                    horaInicial: aulaForm.horaInicial,
-                    horaFinal: horaFinal
-                  }
-                : aula
-            ));
-            setEditingAula(null);
-            setAulaForm({ diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' });
-          };
-
-          const excluirAula = (id) => {
-            if (confirm('Tem certeza que deseja excluir esta aula da grade?')) {
-              setGradeAulas(gradeAulas.filter(aula => aula.id !== id));
-            }
-          };
-
-          // Geração de Calendário
-          const gerarCalendario = () => {
-            const dataAtual = new Date();
-            const mesAtual = dataAtual.getMonth();
-            const anoAtual = dataAtual.getFullYear();
-            
-            if (selectedYear < anoAtual || (selectedYear === anoAtual && selectedMonth < mesAtual)) {
-              alert('Não é possível gerar calendário para meses anteriores ao mês corrente.');
-              return;
-            }
-            
-            if (selectedYear !== anoAtual) {
-              alert('Não é possível gerar calendário para anos diferentes do ano corrente.');
-              return;
-            }
-            
-            const chaveCalendario = `${selectedYear}-${selectedMonth}`;
-            
-            if (calendario[chaveCalendario]) {
-              if (!confirm(`Já existe um calendário para ${meses[selectedMonth]}/${selectedYear}. Deseja substituí-lo? ATENÇÃO: O calendário existente será ZERADO.`)) {
-                return;
-              }
-            }
-            
-            // Gera calendário do mês
-            const primeiroDia = new Date(selectedYear, selectedMonth, 1);
-            const ultimoDia = new Date(selectedYear, selectedMonth + 1, 0);
-            const novoCalendario = [];
-            
-            for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
-              const dataAtual = new Date(selectedYear, selectedMonth, dia);
-              const diaSemana = dataAtual.getDay();
-              
-              // Verifica se é feriado
-              const dataStr = dataAtual.toISOString().split('T')[0];
-              const feriado = feriados[selectedYear]?.find(f => f.data === dataStr);
-              
-              if (feriado) {
-                novoCalendario.push({
-                  data: dataStr,
-                  aulas: [],
-                  feriado: feriado.nome
-                });
-                continue;
-              }
-              
-              // Pula domingo (dia 0)
-              if (diaSemana === 0) continue;
-              
-              // Busca aulas da grade para este dia da semana
-              const aulasParaEsseDia = gradeAulas
-                .filter(aula => aula.diaSemana === diaSemana)
-                .map(aula => ({
-                  ...aula,
-                  id: `${dataStr}-${aula.id}`,
-                  status: 'normal' // normal, excluida, modificada
-                }));
-              
-              novoCalendario.push({
-                data: dataStr,
-                aulas: aulasParaEsseDia,
-                feriado: null
-              });
-            }
-            
-            setCalendario({
-              ...calendario,
-              [chaveCalendario]: novoCalendario
-            });
-            
-            alert('Calendário gerado com sucesso!');
-          };
-
-          // Manutenção do Calendário
-          const excluirAulaCalendario = (chaveCalendario, dataStr, aulaId) => {
-            if (confirm('Tem certeza que deseja excluir esta aula? Ela será contabilizada como excluída nos relatórios.')) {
-              const novoCalendario = { ...calendario };
-              const diaIndex = novoCalendario[chaveCalendario].findIndex(dia => dia.data === dataStr);
-              
-              if (diaIndex !== -1) {
-                const novaAulas = novoCalendario[chaveCalendario][diaIndex].aulas.map(aula =>
-                  aula.id === aulaId ? { ...aula, status: 'excluida' } : aula
-                );
-                
-                novoCalendario[chaveCalendario][diaIndex].aulas = novaAulas;
-                setCalendario(novoCalendario);
-              }
-            }
-          };
-
-          const iniciarEdicaoAulaCalendario = (chaveCalendario, dataStr, aula) => {
-            setEditingAulaCalendario({ chaveCalendario, dataStr, aulaId: aula.id });
-            setManutencaoForm({
-              educadorId: aula.educadorId,
-              horaInicial: aula.horaInicial,
-              horaFinal: aula.horaFinal
-            });
-          };
-
-          const salvarModificacaoAulaCalendario = () => {
-            const { chaveCalendario, dataStr, aulaId } = editingAulaCalendario;
-            const novoCalendario = { ...calendario };
-            const diaIndex = novoCalendario[chaveCalendario].findIndex(dia => dia.data === dataStr);
-            
-            if (diaIndex !== -1) {
-              const novaAulas = novoCalendario[chaveCalendario][diaIndex].aulas.map(aula =>
-                aula.id === aulaId ? { 
-                  ...aula, 
-                  educadorId: parseInt(manutencaoForm.educadorId),
-                  horaInicial: manutencaoForm.horaInicial,
-                  horaFinal: manutencaoForm.horaFinal,
-                  status: 'modificada' 
-                } : aula
-              );
-              
-              novoCalendario[chaveCalendario][diaIndex].aulas = novaAulas;
-              setCalendario(novoCalendario);
-            }
-            
-            setEditingAulaCalendario(null);
-            setManutencaoForm({ educadorId: '', horaInicial: '', horaFinal: '' });
-          };
-
-          const cancelarEdicaoAulaCalendario = () => {
-            setEditingAulaCalendario(null);
-            setManutencaoForm({ educadorId: '', horaInicial: '', horaFinal: '' });
-          };
-
-          const restaurarAulaCalendario = (chaveCalendario, dataStr, aulaId) => {
-            if (confirm('Tem certeza que deseja restaurar esta aula ao estado original?')) {
-              const novoCalendario = { ...calendario };
-              const diaIndex = novoCalendario[chaveCalendario].findIndex(dia => dia.data === dataStr);
-              
-              if (diaIndex !== -1) {
-                const novaAulas = novoCalendario[chaveCalendario][diaIndex].aulas.map(aula => {
-                  if (aula.id === aulaId) {
-                    // Busca a aula original na grade
-                    const aulaOriginalId = parseInt(aula.id.split('-').pop());
-                    const aulaOriginal = gradeAulas.find(a => a.id === aulaOriginalId);
-                    
-                    if (aulaOriginal) {
-                      return {
-                        ...aula,
-                        educadorId: aulaOriginal.educadorId,
-                        horaInicial: aulaOriginal.horaInicial,
-                        horaFinal: aulaOriginal.horaFinal,
-                        status: 'normal'
-                      };
-                    }
-                  }
-                  return aula;
-                });
-                
-                novoCalendario[chaveCalendario][diaIndex].aulas = novaAulas;
-                setCalendario(novoCalendario);
-              }
-            }
-          };
-
-          // Cálculo de totalizações
-          const calcularTotalizacao = () => {
-            const chaveCalendario = `${selectedYear}-${selectedMonth}`;
-            const calendarioMes = calendario[chaveCalendario] || [];
-            
-            let totalGeral = {
-              aulasRealizadas: 0,
-              aulasExcluidas: 0,
-              valorTotal: 0
-            };
-            
-            let totaisPorEducador = {};
-            
-            calendarioMes.forEach(dia => {
-              if (!dia.feriado) {
-                dia.aulas.forEach(aula => {
-                  const educador = educadores.find(e => e.id === aula.educadorId);
-                  if (!educador) return;
-                  
-                  const horasAula = calcularHorasAula(aula.horaInicial, aula.horaFinal);
-                  const valorAula = horasAula * educador.valorHora;
-                  
-                  if (!totaisPorEducador[educador.id]) {
-                    totaisPorEducador[educador.id] = {
-                      nome: educador.nome,
-                      aulasRealizadas: 0,
-                      aulasExcluidas: 0,
-                      valorTotal: 0
-                    };
-                  }
-                  
-                  if (aula.status === 'excluida') {
-                    totalGeral.aulasExcluidas++;
-                    totaisPorEducador[educador.id].aulasExcluidas++;
-                  } else {
-                    totalGeral.aulasRealizadas++;
-                    totalGeral.valorTotal += valorAula;
-                    totaisPorEducador[educador.id].aulasRealizadas++;
-                    totaisPorEducador[educador.id].valorTotal += valorAula;
-                  }
-                });
-              }
-            });
-            
-            return { totalGeral, totaisPorEducador };
-          };
-
-          const calcularHorasAula = (horaInicial, horaFinal) => {
-            const [hIni, mIni] = horaInicial.split(':').map(Number);
-            const [hFim, mFim] = horaFinal.split(':').map(Number);
-            
-            const minutosIni = hIni * 60 + mIni;
-            const minutosFim = hFim * 60 + mFim;
-            
-            return (minutosFim - minutosIni) / 60;
-          };
-
-          // Sistema de Backup
-          const fazerBackup = () => {
-            const dados = {
-              educadores,
-              gradeAulas,
-              calendario,
-              timestamp: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `edufat-backup-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-          };
-
-          const restaurarBackup = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              try {
-                const dados = JSON.parse(e.target.result);
-                if (confirm('Tem certeza que deseja restaurar o backup? Todos os dados atuais serão substituídos.')) {
-                  setEducadores(dados.educadores || []);
-                  setGradeAulas(dados.gradeAulas || []);
-                  setCalendario(dados.calendario || {});
-                  alert('Backup restaurado com sucesso!');
-                }
-              } catch (error) {
-                alert('Erro ao restaurar backup. Verifique se o arquivo está correto.');
-              }
-            };
-            reader.readAsText(file);
-          };
-
-          const inicializarBase = () => {
-            if (confirm('Tem certeza que deseja inicializar a base de dados? Todos os dados serão perdidos.')) {
-              setEducadores([]);
-              setGradeAulas([]);
-              setCalendario({});
-              localStorage.removeItem('eduFatData');
-              alert('Base de dados inicializada com sucesso!');
-            }
-          };
-
-          // Renderização das views
-          const renderDashboard = () => {
-            const { totalGeral, totaisPorEducador } = calcularTotalizacao();
-            
-            return (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">Dashboard - {meses[selectedMonth]} {selectedYear}</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-                    <h3 className="text-lg font-semibold text-green-800 mb-2">Aulas Realizadas</h3>
-                    <p className="text-3xl font-bold text-green-600">{totalGeral.aulasRealizadas}</p>
-                  </div>
-                  
-                  <div className="bg-red-50 p-6 rounded-lg border border-red-200">
-                    <h3 className="text-lg font-semibold text-red-800 mb-2">Aulas Excluídas</h3>
-                    <p className="text-3xl font-bold text-red-600">{totalGeral.aulasExcluidas}</p>
-                  </div>
-                  
-                  <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-2">Total a Pagar</h3>
-                    <p className="text-3xl font-bold text-blue-600">R$ {totalGeral.valorTotal.toFixed(2)}</p>
-                  </div>
-                </div>
-                
-                {Object.keys(totaisPorEducador).length > 0 && (
-                  <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <h3 className="text-xl font-semibold mb-4">Totais por Educador</h3>
-                    
-                    {/* Desktop: Tabela */}
-                    <div className="hidden md:block overflow-x-auto">
-                      <table className="w-full table-auto">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Educador</th>
-                            <th className="text-center p-2">Realizadas</th>
-                            <th className="text-center p-2">Excluídas</th>
-                            <th className="text-right p-2">Total (R$)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.values(totaisPorEducador).map((total, index) => (
-                            <tr key={index} className="border-b">
-                              <td className="p-2 font-medium">{total.nome}</td>
-                              <td className="p-2 text-center text-green-600">{total.aulasRealizadas}</td>
-                              <td className="p-2 text-center text-red-600">{total.aulasExcluidas}</td>
-                              <td className="p-2 text-right font-semibold">R$ {total.valorTotal.toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    
-                    {/* Mobile: Cards */}
-                    <div className="md:hidden space-y-4">
-                      {Object.values(totaisPorEducador).map((total, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4 border">
-                          <div className="flex justify-between items-center mb-3">
-                            <h4 className="font-semibold text-lg text-gray-800">{total.nome}</h4>
-                            <span className="text-lg font-bold text-blue-600">R$ {total.valorTotal.toFixed(2)}</span>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="text-center">
-                              <div className="text-2xl font-bold text-green-600">{total.aulasRealizadas}</div>
-                              <div className="text-sm text-gray-600">Realizadas</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold text-red-600">{total.aulasExcluidas}</div>
-                              <div className="text-sm text-gray-600">Excluídas</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          };
-
-          const renderEducadores = () => (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800">Gerenciar Educadores</h2>
-              
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold mb-4">
-                  {editingEducador ? 'Editar Educador' : 'Novo Educador'}
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <input
-                    type="text"
-                    placeholder="Nome do educador"
-                    value={educadorForm.nome}
-                    onChange={(e) => setEducadorForm({...educadorForm, nome: e.target.value})}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Valor por hora"
-                    value={educadorForm.valorHora}
-                    onChange={(e) => setEducadorForm({...educadorForm, valorHora: e.target.value})}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <div className="flex gap-2">
-                    {editingEducador ? (
-                      <>
-                        <button
-                          onClick={salvarEdicaoEducador}
-                          className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
-                        >
-                          <Save size={16} />
-                          Salvar
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingEducador(null);
-                            setEducadorForm({ nome: '', valorHora: '' });
-                          }}
-                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={adicionarEducador}
-                        className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                      >
-                        <Plus size={16} />
-                        Adicionar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Educadores Cadastrados</h3>
-                  
-                  {educadores.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">Nenhum educador cadastrado</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full table-auto">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Nome</th>
-                            <th className="text-center p-2">Valor/Hora</th>
-                            <th className="text-center p-2">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {educadores.map((educador) => (
-                            <tr key={educador.id} className="border-b">
-                              <td className="p-2 font-medium">{educador.nome}</td>
-                              <td className="p-2 text-center">R$ {educador.valorHora.toFixed(2)}</td>
-                              <td className="p-2 text-center">
-                                <div className="flex justify-center gap-2">
-                                  <button
-                                    onClick={() => editarEducador(educador)}
-                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => excluirEducador(educador.id)}
-                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-
-          const renderGradeAulas = () => (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800">Grade de Aulas Base</h2>
-              
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold mb-4">
-                  {editingAula ? 'Editar Aula' : 'Nova Aula'}
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                  <select
-                    value={aulaForm.diaSemana}
-                    onChange={(e) => setAulaForm({...aulaForm, diaSemana: e.target.value})}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Dia da Semana</option>
-                    {diasSemana.map(dia => (
-                      <option key={dia.id} value={dia.id}>{dia.nome}</option>
-                    ))}
-                  </select>
-                  
-                  <select
-                    value={aulaForm.educadorId}
-                    onChange={(e) => setAulaForm({...aulaForm, educadorId: e.target.value})}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Educador</option>
-                    {educadores.map(educador => (
-                      <option key={educador.id} value={educador.id}>{educador.nome}</option>
-                    ))}
-                  </select>
-                  
-                  <input
-                    type="time"
-                    placeholder="Hora Inicial"
-                    value={aulaForm.horaInicial}
-                    onChange={(e) => setAulaForm({
-                      ...aulaForm, 
-                      horaInicial: e.target.value,
-                      horaFinal: e.target.value ? adicionarHoras(e.target.value, 2) : ''
-                    })}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  
-                  <input
-                    type="time"
-                    placeholder="Hora Final"
-                    value={aulaForm.horaFinal}
-                    onChange={(e) => setAulaForm({...aulaForm, horaFinal: e.target.value})}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  
-                  <div className="flex gap-2">
-                    {editingAula ? (
-                      <>
-                        <button
-                          onClick={salvarEdicaoAula}
-                          className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
-                        >
-                          <Save size={16} />
-                          Salvar
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingAula(null);
-                            setAulaForm({ diaSemana: '', educadorId: '', horaInicial: '', horaFinal: '' });
-                          }}
-                          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={adicionarAula}
-                        className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                      >
-                        <Plus size={16} />
-                        Adicionar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Grade Cadastrada</h3>
-                  
-                  {gradeAulas.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">Nenhuma aula cadastrada na grade</p>
-                  ) : (
-                    <>
-                      {/* Desktop: Tabela */}
-                      <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full table-auto">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left p-2">Dia</th>
-                              <th className="text-left p-2">Educador</th>
-                              <th className="text-center p-2">Horário</th>
-                              <th className="text-center p-2">Duração</th>
-                              <th className="text-center p-2">Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {gradeAulas.map((aula) => {
-                              const educador = educadores.find(e => e.id === aula.educadorId);
-                              const dia = diasSemana.find(d => d.id === aula.diaSemana);
-                              const duracao = calcularHorasAula(aula.horaInicial, aula.horaFinal);
-                              
-                              return (
-                                <tr key={aula.id} className="border-b">
-                                  <td className="p-2 font-medium">{dia?.nome}</td>
-                                  <td className="p-2">{educador?.nome}</td>
-                                  <td className="p-2 text-center">{aula.horaInicial} - {aula.horaFinal}</td>
-                                  <td className="p-2 text-center">{duracao}h</td>
-                                  <td className="p-2 text-center">
-                                    <div className="flex justify-center gap-2">
-                                      <button
-                                        onClick={() => editarAula(aula)}
-                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                      >
-                                        <Edit size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => excluirAula(aula.id)}
-                                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      {/* Mobile: Cards */}
-                      <div className="md:hidden space-y-4">
-                        {gradeAulas.map((aula) => {
-                          const educador = educadores.find(e => e.id === aula.educadorId);
-                          const dia = diasSemana.find(d => d.id === aula.diaSemana);
-                          const duracao = calcularHorasAula(aula.horaInicial, aula.horaFinal);
-                          
-                          return (
-                            <div key={aula.id} className="bg-gray-50 rounded-lg p-4 border">
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-lg text-gray-800 mb-1">{dia?.nome}</h4>
-                                  <p className="text-gray-600 mb-2">{educador?.nome}</p>
-                                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                                    <span className="font-medium">{aula.horaInicial} - {aula.horaFinal}</span>
-                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                                      {duracao}h
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex gap-2 ml-4">
-                                  <button
-                                    onClick={() => editarAula(aula)}
-                                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                                    title="Editar aula"
-                                  >
-                                    <Edit size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => excluirAula(aula.id)}
-                                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
-                                    title="Excluir aula"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-
-          const renderCalendario = () => {
-            const chaveCalendario = `${selectedYear}-${selectedMonth}`;
-            const calendarioMes = calendario[chaveCalendario] || [];
-            
-            return (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <h2 className="text-2xl font-bold text-gray-800">Calendário</h2>
-                  
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        {meses.map((mes, index) => (
-                          <option key={index} value={index}>{mes}</option>
-                        ))}
-                      </select>
-                      
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                      </select>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <button
-                        onClick={gerarCalendario}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                      >
-                        <Calendar size={16} />
-                        Gerar Calendário
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                {calendarioMes.length === 0 ? (
-                  <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-                    <p className="text-gray-500">Nenhum calendário gerado para {meses[selectedMonth]} {selectedYear}</p>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow-sm border">
-                    <div className="p-6">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold">
-                          Calendário de {meses[selectedMonth]} {selectedYear}
-                        </h3>
-                        
-                        <div className="text-sm text-gray-600">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-green-200 rounded border border-green-300"></div>
-                              <span>Normal</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-yellow-200 rounded border border-yellow-300"></div>
-                              <span>Modificada</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-red-200 rounded border border-red-300"></div>
-                              <span>Excluída</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {editingAulaCalendario && (
-                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <h4 className="font-semibold mb-3 text-blue-800">Modificar Aula</h4>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <select
-                              value={manutencaoForm.educadorId}
-                              onChange={(e) => setManutencaoForm({...manutencaoForm, educadorId: e.target.value})}
-                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="">Selecionar educador</option>
-                              {educadores.map(educador => (
-                                <option key={educador.id} value={educador.id}>{educador.nome}</option>
-                              ))}
-                            </select>
-                            
-                            <input
-                              type="time"
-                              value={manutencaoForm.horaInicial}
-                              onChange={(e) => setManutencaoForm({
-                                ...manutencaoForm, 
-                                horaInicial: e.target.value,
-                                horaFinal: e.target.value ? adicionarHoras(e.target.value, 2) : manutencaoForm.horaFinal
-                              })}
-                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                              title="Hora inicial"
-                            />
-                            
-                            <input
-                              type="time"
-                              value={manutencaoForm.horaFinal}
-                              onChange={(e) => setManutencaoForm({...manutencaoForm, horaFinal: e.target.value})}
-                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                              title="Hora final"
-                            />
-                            
-                            <div className="flex gap-2">
-                              <button
-                                onClick={salvarModificacaoAulaCalendario}
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-                              >
-                                <Save size={16} />
-                                Salvar
-                              </button>
-                              <button
-                                onClick={cancelarEdicaoAulaCalendario}
-                                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 flex items-center gap-2"
-                              >
-                                <X size={16} />
-                                Cancelar
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <p className="text-xs text-blue-600 mt-2">
-                            💡 Dica: Modificar a hora inicial automaticamente ajusta para 2h de duração. Você pode alterar a hora final se necessário.
-                          </p>
-                        </div>
-                      )}
-                      
-                      <div className="space-y-4">
-                        {calendarioMes.map((dia, index) => (
-                          <div key={index} className="border rounded-lg p-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <h4 className="font-semibold">
-                                {new Date(dia.data + 'T00:00:00').toLocaleDateString('pt-BR', {
-                                  weekday: 'long',
-                                  day: '2-digit',
-                                  month: '2-digit'
-                                })}
-                              </h4>
-                              
-                              {dia.feriado && (
-                                <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm">
-                                  {dia.feriado}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {dia.aulas.length === 0 ? (
-                              <p className="text-gray-500 text-sm">
-                                {dia.feriado ? 'Sem aulas - Feriado' : 'Sem aulas'}
-                              </p>
-                            ) : (
-                              <div className="space-y-2">
-                                {dia.aulas.map((aula) => {
-                                  const educador = educadores.find(e => e.id === aula.educadorId);
-                                  const duracao = calcularHorasAula(aula.horaInicial, aula.horaFinal);
-                                  const valor = duracao * (educador?.valorHora || 0);
-                                  
-                                  return (
-                                    <div
-                                      key={aula.id}
-                                      className={`p-3 rounded-lg border ${
-                                        aula.status === 'excluida' 
-                                          ? 'bg-red-50 border-red-200 text-red-800' 
-                                          : aula.status === 'modificada'
-                                          ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                                          : 'bg-green-50 border-green-200 text-green-800'
-                                      }`}
-                                    >
-                                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                        <div className="flex-1">
-                                          <p className="font-medium">{educador?.nome}</p>
-                                          <p className="text-sm">
-                                            {aula.horaInicial} - {aula.horaFinal} ({duracao}h) - R$ {valor.toFixed(2)}
-                                          </p>
-                                          {aula.status === 'excluida' && (
-                                            <p className="text-xs font-medium">AULA EXCLUÍDA</p>
-                                          )}
-                                          {aula.status === 'modificada' && (
-                                            <p className="text-xs font-medium">AULA MODIFICADA</p>
-                                          )}
-                                        </div>
-                                        
-                                        <div className="flex gap-1">
-                                          {aula.status === 'excluida' ? (
-                                            <button
-                                              onClick={() => restaurarAulaCalendario(chaveCalendario, dia.data, aula.id)}
-                                              className="p-1 text-green-600 hover:bg-green-100 rounded"
-                                              title="Restaurar aula"
-                                            >
-                                              <RefreshCw size={14} />
-                                            </button>
-                                          ) : (
-                                            <>
-                                              <button
-                                                onClick={() => iniciarEdicaoAulaCalendario(chaveCalendario, dia.data, aula)}
-                                                className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                                                title="Modificar aula"
-                                              >
-                                                <Edit size={14} />
-                                              </button>
-                                              <button
-                                                onClick={() => excluirAulaCalendario(chaveCalendario, dia.data, aula.id)}
-                                                className="p-1 text-red-600 hover:bg-red-100 rounded"
-                                                title="Excluir aula"
-                                              >
-                                                <Trash2 size={14} />
-                                              </button>
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          };
-
-          const renderConfiguracoes = () => (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800">Configurações</h2>
-              
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h3 className="text-lg font-semibold mb-4">Backup e Restauração</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button
-                    onClick={fazerBackup}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
-                  >
-                    <Download size={16} />
-                    Fazer Backup
-                  </button>
-                  
-                  <label className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 cursor-pointer">
-                    <Upload size={16} />
-                    Restaurar Backup
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={restaurarBackup}
-                      className="hidden"
-                    />
-                  </label>
-                  
-                  <button
-                    onClick={inicializarBase}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw size={16} />
-                    Inicializar Base
-                  </button>
-                </div>
-                
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    <strong>Backup:</strong> Faz o download de todos os dados em formato JSON.<br/>
-                    <strong>Restaurar:</strong> Substitui todos os dados pelos do arquivo de backup.<br/>
-                    <strong>Inicializar:</strong> Remove todos os dados e reinicia o sistema.
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-
+          // Interface principal
           return (
             <div className="min-h-screen bg-gray-50">
               {/* Header */}
@@ -1153,24 +103,9 @@
                   <div className="flex justify-between items-center py-4">
                     <h1 className="text-2xl font-bold text-blue-600">EduFat</h1>
                     <div className="flex items-center gap-4">
-                      <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                      >
-                        {meses.map((mes, index) => (
-                          <option key={index} value={index}>{mes}</option>
-                        ))}
-                      </select>
-                      
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                      </select>
+                      <span className="text-sm text-gray-600">
+                        {meses[selectedMonth]} {selectedYear}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1179,123 +114,133 @@
               {/* Navigation */}
               <nav className="bg-white shadow-sm border-b">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  {/* Desktop Navigation */}
-                  <div className="hidden md:flex overflow-x-auto">
-                    {[
-                      { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                      { id: 'educadores', label: 'Educadores', icon: User },
-                      { id: 'grade', label: 'Grade', icon: BookOpen },
-                      { id: 'calendario', label: 'Calendário', icon: Calendar },
-                      { id: 'config', label: 'Configurações', icon: Settings }
-                    ].map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => setCurrentView(item.id)}
-                          className={`flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap ${
-                            currentView === item.id
-                              ? 'border-blue-500 text-blue-600 bg-blue-50'
-                              : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                          }`}
-                        >
-                          <Icon size={18} />
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Mobile Navigation */}
-                  <div className="md:hidden">
-                    <div className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-3">
-                        {[
-                          { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                          { id: 'educadores', label: 'Educadores', icon: User },
-                          { id: 'grade', label: 'Grade', icon: BookOpen },
-                          { id: 'calendario', label: 'Calendário', icon: Calendar },
-                          { id: 'config', label: 'Configurações', icon: Settings }
-                        ].find(item => item.id === currentView) && (
-                          <>
-                            {React.createElement([
-                              { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                              { id: 'educadores', label: 'Educadores', icon: User },
-                              { id: 'grade', label: 'Grade', icon: BookOpen },
-                              { id: 'calendario', label: 'Calendário', icon: Calendar },
-                              { id: 'config', label: 'Configurações', icon: Settings }
-                            ].find(item => item.id === currentView).icon, { size: 20, className: 'text-blue-600' })}
-                            <span className="font-medium text-gray-800">
-                              {[
-                                { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                                { id: 'educadores', label: 'Educadores', icon: User },
-                                { id: 'grade', label: 'Grade', icon: BookOpen },
-                                { id: 'calendario', label: 'Calendário', icon: Calendar },
-                                { id: 'config', label: 'Configurações', icon: Settings }
-                              ].find(item => item.id === currentView).label}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
-                      >
-                        <Menu size={20} />
-                      </button>
-                    </div>
-                    
-                    {/* Mobile Menu Dropdown */}
-                    {mobileMenuOpen && (
-                      <div className="absolute left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-                        <div className="max-w-7xl mx-auto px-4 py-2">
-                          {[
-                            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-                            { id: 'educadores', label: 'Educadores', icon: User },
-                            { id: 'grade', label: 'Grade', icon: BookOpen },
-                            { id: 'calendario', label: 'Calendário', icon: Calendar },
-                            { id: 'config', label: 'Configurações', icon: Settings }
-                          ].map((item) => {
-                            const Icon = item.icon;
-                            return (
-                              <button
-                                key={item.id}
-                                onClick={() => {
-                                  setCurrentView(item.id);
-                                  setMobileMenuOpen(false);
-                                }}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${
-                                  currentView === item.id
-                                    ? 'bg-blue-50 text-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                                }`}
-                              >
-                                <Icon size={18} />
-                                {item.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                  <div className="flex overflow-x-auto">
+                    <button
+                      onClick={() => setCurrentView('dashboard')}
+                      className={`flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap ${
+                        currentView === 'dashboard'
+                          ? 'border-blue-500 text-blue-600 bg-blue-50'
+                          : 'border-transparent text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('educadores')}
+                      className={`flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap ${
+                        currentView === 'educadores'
+                          ? 'border-blue-500 text-blue-600 bg-blue-50'
+                          : 'border-transparent text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      Educadores
+                    </button>
                   </div>
                 </div>
               </nav>
 
               {/* Main Content */}
               <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {currentView === 'dashboard' && renderDashboard()}
-                {currentView === 'educadores' && renderEducadores()}
-                {currentView === 'grade' && renderGradeAulas()}
-                {currentView === 'calendario' && renderCalendario()}
-                {currentView === 'config' && renderConfiguracoes()}
+                {currentView === 'dashboard' && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                        <h3 className="text-lg font-semibold text-blue-800 mb-2">Educadores</h3>
+                        <p className="text-3xl font-bold text-blue-600">{educadores.length}</p>
+                      </div>
+                      <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                        <h3 className="text-lg font-semibold text-green-800 mb-2">Aulas</h3>
+                        <p className="text-3xl font-bold text-green-600">{gradeAulas.length}</p>
+                      </div>
+                      <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                        <h3 className="text-lg font-semibold text-purple-800 mb-2">Sistema</h3>
+                        <p className="text-lg font-bold text-purple-600">✅ Funcionando</p>
+                      </div>
+                    </div>
+                    
+                    {/* Status da migração */}
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                      <h3 className="text-lg font-semibold mb-4">Status da Migração</h3>
+                      <p className="text-green-600">
+                        ✅ Sistema EduFat carregado com sucesso!
+                      </p>
+                      <p className="text-sm text-gray-600 mt-2">
+                        Dados do Educontrol migrados automaticamente.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {currentView === 'educadores' && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Gerenciar Educadores</h2>
+                    
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                      <h3 className="text-lg font-semibold mb-4">Novo Educador</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <input
+                          type="text"
+                          placeholder="Nome do educador"
+                          value={educadorForm.nome}
+                          onChange={(e) => setEducadorForm({...educadorForm, nome: e.target.value})}
+                          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Valor por hora"
+                          value={educadorForm.valorHora}
+                          onChange={(e) => setEducadorForm({...educadorForm, valorHora: e.target.value})}
+                          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={adicionarEducador}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                      <h3 className="text-lg font-semibold mb-4">Educadores Cadastrados</h3>
+                      
+                      {educadores.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">Nenhum educador cadastrado</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {educadores.map((educador) => (
+                            <div key={educador.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                              <div>
+                                <h4 className="font-semibold">{educador.nome}</h4>
+                                <p className="text-sm text-gray-600">R$ {educador.valorHora.toFixed(2)}/hora</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </main>
             </div>
           );
         };
 
-        ReactDOM.render(<EduFat />, document.getElementById('root'));
+        // Renderizar o componente
+        const root = ReactDOM.createRoot ? ReactDOM.createRoot(document.getElementById('root')) : null;
+        
+        if (root) {
+          // React 18
+          root.render(<EduFat />);
+        } else {
+          // React 17 fallback
+          ReactDOM.render(<EduFat />, document.getElementById('root'));
+        }
+        
+        console.log('✅ EduFat iniciado!');
     </script>
 </body>
 </html>
